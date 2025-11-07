@@ -10,7 +10,7 @@ class MainScene extends Phaser.Scene {
 
     preload() {
         // Cargar el fondo y el enemigo
-        this.load.image('background', 'src/assets/background/fondo1.png');
+        this.load.image('background', 'src/assets/background/fondo2.png');
         // Delegar la carga del enemigo al módulo
         preloadEnemies(this);
         
