@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { preloadEnemies, createEnemies } from './src/enemies/index.js';
 
 class MainScene extends Phaser.Scene {
     constructor() {
@@ -10,12 +11,8 @@ class MainScene extends Phaser.Scene {
     preload() {
         // Cargar el fondo y el enemigo
         this.load.image('background', 'src/assets/background/fondo1.png');
-        this.load.spritesheet('ghost', 'src/assets/enemy/gatoInvisibleFinal.png', {
-            frameWidth: 200,
-            frameHeight: 200,
-            transparent: true,
-            backgroundColor: 'transparent'
-        });
+        // Delegar la carga del enemigo al módulo
+        preloadEnemies(this);
         
         // Generar texturas simples (no necesitas imágenes)
         const g = this.make.graphics({ x: 0, y: 0, add: false });
@@ -116,38 +113,10 @@ class MainScene extends Phaser.Scene {
         });
 
     
-    this.door = this.physics.add.staticSprite(width - 60, floorsY[4] - 27, 'door');
+        this.door = this.physics.add.staticSprite(width - 60, floorsY[4] - 27, 'door');
         this.doorOpen = false;
 
-        // Fantasma que patrulla el 3er piso
-        this.ghost = this.physics.add.sprite(500, floorsY[2] - 60, 'ghost');
-        
-        // Configurar animaciones del fantasma
-        this.anims.create({
-            key: 'ghost-float',
-            frames: this.anims.generateFrameNumbers('ghost', { start: 0, end: 24 }), // 25 frames (0-24)
-            frameRate: 12, // velocidad ajustada para la animación completa
-            repeat: -1
-        });
-        
-        this.ghost.setScale(0.8);
-        this.ghost.setAlpha(0.8);
-        this.ghost.body.setSize(160, 160);
-        this.ghost.body.setOffset(20, 20);
-        this.ghost.body.setAllowGravity(false);
-        this.ghost.setCollideWorldBounds(true);
-        this.ghost.play('ghost-float'); // Iniciar la animación
-
-        // Tween de patrulla
-        this.tweens.add({
-            targets: this.ghost,
-            x: { from: 320, to: 820 },
-            duration: 2500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.inOut'
-        });
-
+        this.enemies = createEnemies(this);
         // Colisiones/overlaps
         this.physics.add.overlap(this.player, this.ladders, this.onLadderOverlap, null, this);
         this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
