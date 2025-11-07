@@ -8,8 +8,15 @@ class MainScene extends Phaser.Scene {
     }
 
     preload() {
-        // Cargar el fondo
+        // Cargar el fondo y el enemigo
         this.load.image('background', 'src/assets/background/fondo1.png');
+        // Cargar el sprite del fantasma con transparencia
+        this.load.spritesheet('ghost', 'src/assets/enemy/gatoInvisibleFinal.png', {
+            frameWidth: 200,
+            frameHeight: 200,
+            transparent: true,
+            backgroundColor: 'transparent'
+        });
         
         // Generar texturas simples (no necesitas imágenes)
         const g = this.make.graphics({ x: 0, y: 0, add: false });
@@ -53,16 +60,6 @@ class MainScene extends Phaser.Scene {
         g.fillStyle(0x2b1813, 1);
         g.fillRect(6, 10, 22, 30);
         g.generateTexture('door', 34, 54);
-        g.clear();
-
-        // Fantasma (gato fantasma)
-        g.fillStyle(0x88ccff, 0.9);
-        g.fillRoundedRect(0, 0, 28, 28, 12);
-        g.fillStyle(0x00334d, 1);
-        g.fillCircle(10, 12, 3);
-        g.fillCircle(18, 12, 3);
-        g.fillRect(9, 20, 10, 3);
-        g.generateTexture('ghost', 28, 28);
         g.clear();
     }
 
@@ -123,9 +120,23 @@ class MainScene extends Phaser.Scene {
         this.doorOpen = false;
 
         // Fantasma que patrulla el 3er piso
-        this.ghost = this.physics.add.sprite(500, floorsY[2] - 40, 'ghost');
+        this.ghost = this.physics.add.sprite(500, floorsY[2] - 60, 'ghost');
+        
+        // Configurar animaciones del fantasma
+        this.anims.create({
+            key: 'ghost-float',
+            frames: this.anims.generateFrameNumbers('ghost', { start: 0, end: 24 }), // 25 frames (0-24)
+            frameRate: 12, // velocidad ajustada para la animación completa
+            repeat: -1
+        });
+        
+        this.ghost.setScale(1);
+        this.ghost.setAlpha(1);
+        this.ghost.body.setSize(160, 160);
+        this.ghost.body.setOffset(20, 20);
         this.ghost.body.setAllowGravity(false);
         this.ghost.setCollideWorldBounds(true);
+        this.ghost.play('ghost-float'); // Iniciar la animación
 
         // Tween de patrulla
         this.tweens.add({
