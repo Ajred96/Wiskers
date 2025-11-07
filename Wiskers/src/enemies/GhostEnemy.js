@@ -16,7 +16,6 @@ export class GhostEnemy extends EnemyBase {
     }
 
     static preload(scene) {
-        console.log('[GhostEnemy] preload spritesheet ghost');
         scene.load.spritesheet('ghost', 'src/assets/enemy/gatoInvisibleFinal.png', {
             frameWidth: 200,
             frameHeight: 200
@@ -24,7 +23,6 @@ export class GhostEnemy extends EnemyBase {
     }
 
     static createAnimations(scene) {
-        console.log('[GhostEnemy] createAnimations');
         scene.anims.create({
             key: 'ghost-float',
             frames: scene.anims.generateFrameNumbers('ghost', { start: 0, end: 24 }),
