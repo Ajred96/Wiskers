@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { preloadEnemies, createEnemies } from './src/enemies/index.js';
 
 class MainScene extends Phaser.Scene {
     constructor() {
@@ -8,6 +9,11 @@ class MainScene extends Phaser.Scene {
     }
 
     preload() {
+        // Cargar el fondo y el enemigo
+        this.load.image('background', 'src/assets/background/fondo1.png');
+        // Delegar la carga del enemigo al módulo
+        preloadEnemies(this);
+        
         // Generar texturas simples (no necesitas imágenes)
         const g = this.make.graphics({ x: 0, y: 0, add: false });
 
@@ -23,8 +29,8 @@ class MainScene extends Phaser.Scene {
 
         // Plataforma
         g.fillStyle(0xffffff, 1);
-        g.fillRect(0, 0, 200, 16);
-        g.generateTexture('platform', 200, 16);
+        g.fillRect(0, 0, 400, 16);
+        g.generateTexture('platform', 400, 16);
         g.clear();
 
         // Escalera
@@ -51,39 +57,35 @@ class MainScene extends Phaser.Scene {
         g.fillRect(6, 10, 22, 30);
         g.generateTexture('door', 34, 54);
         g.clear();
-
-        // Fantasma (gato fantasma)
-        g.fillStyle(0x88ccff, 0.9);
-        g.fillRoundedRect(0, 0, 28, 28, 12);
-        g.fillStyle(0x00334d, 1);
-        g.fillCircle(10, 12, 3);
-        g.fillCircle(18, 12, 3);
-        g.fillRect(9, 20, 10, 3);
-        g.generateTexture('ghost', 28, 28);
-        g.clear();
     }
 
     create() {
-        const width = 960;
-        const height = 540;
+        // Usar el tamaño gestionado por Phaser (scale manager).
+        const width = this.scale.width;
+        const height = this.scale.height;
 
+        const totalFloors = 5;
+        const floorHeight = 200;
+        const worldHeight = totalFloors * floorHeight;
+        
         // Mundo
-        this.cameras.main.setBackgroundColor('#1f3c5b');
-        this.physics.world.setBounds(0, 0, width, height);
+        this.background = this.add.image(width/2, height/2, 'background').setDisplaySize(width, height);
+        this.physics.world.setBounds(0, 0, width, worldHeight);
 
         // Plataformas (5 pisos de casa embrujada)
         this.platforms = this.physics.add.staticGroup();
 
-        const floorsY = [500, 400, 300, 200, 100]; // de abajo a arriba
-        floorsY.forEach((y) => {
-            // 3 tramos con huecos (para escalera y saltos)
-            this.platforms.create(120, y, 'platform').setScale(1, 1).refreshBody();
-            this.platforms.create(480, y, 'platform').refreshBody();
-            this.platforms.create(840, y, 'platform').refreshBody();
-        });
+        const floorsY = [];
+        for (let i = 0; i < totalFloors; i++) {
+            const y = worldHeight - (i * floorHeight) - 40;
+            floorsY.push(y);
+            this.platforms.create(width * 0.2, y, 'platform').setScale(1.5, 1).refreshBody();
+            this.platforms.create(width * 0.5, y, 'platform').setScale(1, 1).refreshBody();
+            this.platforms.create(width * 0.75, y, 'platform').setScale(1, 1).refreshBody();
+        }
 
         // Jugador
-        this.player = this.physics.add.sprite(80, floorsY[0] - 40, 'player');
+        this.player = this.physics.add.sprite(80, floorsY[totalFloors - 1] - 40, 'player');
         this.player.setCollideWorldBounds(true);
         this.player.body.setSize(20, 26).setOffset(4, 2);
 
@@ -115,25 +117,11 @@ class MainScene extends Phaser.Scene {
             k.setScale(1);
         });
 
-        // Puerta en el ático (piso superior)
+    
         this.door = this.physics.add.staticSprite(width - 60, floorsY[4] - 27, 'door');
         this.doorOpen = false;
 
-        // Fantasma que patrulla el 3er piso
-        this.ghost = this.physics.add.sprite(500, floorsY[2] - 40, 'ghost');
-        this.ghost.body.setAllowGravity(false);
-        this.ghost.setCollideWorldBounds(true);
-
-        // Tween de patrulla
-        this.tweens.add({
-            targets: this.ghost,
-            x: { from: 320, to: 820 },
-            duration: 2500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.inOut'
-        });
-
+        this.enemies = createEnemies(this);
         // Colisiones/overlaps
         this.physics.add.overlap(this.player, this.ladders, this.onLadderOverlap, null, this);
         this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
@@ -141,8 +129,8 @@ class MainScene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
 
         // Cámara
-        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-        this.cameras.main.setBounds(0, 0, width, height);
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+        this.cameras.main.setBounds(0, 0, width, worldHeight);
 
         // UI simple
         this.ui = this.add.text(12, 12, 'Llaves: 0/3', { fontFamily: 'Arial', fontSize: 18, color: '#ffffff' }).setScrollFactor(0);
@@ -150,6 +138,20 @@ class MainScene extends Phaser.Scene {
 
         // Estado de escalera
         this.onLadder = false;
+
+        // Manejar redimensionamiento gestionado por Phaser (FIT). Actualiza bounds y fondo.
+        this.scale.on('resize', (gameSize) => {
+            const w = gameSize.width;
+            const h = gameSize.height;
+            // actualizar background y bounds
+            if (this.background) this.background.setDisplaySize(w, h).setPosition(w/2, h/2);
+            if (this.cameras && this.cameras.main) this.cameras.main.setBounds(0, 0, w, h);
+            if (this.physics && this.physics.world) this.physics.world.setBounds(0, 0, w, h);
+            // ajustar UI
+            if (this.msg) this.msg.setPosition(w/2, 40);
+            // reposicionar puerta respecto al nuevo ancho
+            if (this.door) this.door.setPosition(w - 60, floorsY[4] - 27);
+        });
     }
 
     onLadderOverlap(player, ladder) {
@@ -229,11 +231,18 @@ class MainScene extends Phaser.Scene {
     }
 }
 
+const BASE_WIDTH = 960;
+const BASE_HEIGHT = 540;
+
 const config = {
     type: Phaser.AUTO,
-    parent: 'game',
-    width: 960,
-    height: 540,
+    scale: {
+        mode: Phaser.Scale.RESIZE, // usar RESIZE para que la resolución del canvas se ajuste al contenedor
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        parent: 'game',
+        width: BASE_WIDTH,
+        height: BASE_HEIGHT
+    },
     backgroundColor: '#1f3c5b',
     physics: {
         default: 'arcade',
@@ -245,4 +254,17 @@ const config = {
     scene: [MainScene]
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+// Asegurarnos de que el canvas tenga la resolución del contenedor #game para evitar scaling CSS
+function resizeGameToContainer() {
+    const container = document.getElementById('game');
+    if (!container || !game || !game.scale) return;
+    const w = Math.max(1, Math.floor(container.clientWidth));
+    const h = Math.max(1, Math.floor(container.clientHeight));
+    game.scale.resize(w, h);
+}
+
+// Llamar al inicio y cuando cambie la ventana
+window.addEventListener('load', () => resizeGameToContainer());
+window.addEventListener('resize', () => resizeGameToContainer());
