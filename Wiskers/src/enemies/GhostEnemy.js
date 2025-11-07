@@ -16,7 +16,7 @@ export class GhostEnemy extends EnemyBase {
     }
 
     static preload(scene) {
-        scene.load.spritesheet('ghost', 'src/assets/enemy/gatoInvisibleFinal.png', {
+        scene.load.spritesheet('ghost', 'assets/enemy/gatoInvisibleFinal.png', {
             frameWidth: 200,
             frameHeight: 200
         });
