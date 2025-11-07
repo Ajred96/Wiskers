@@ -10,7 +10,7 @@ class MainScene extends Phaser.Scene {
 
     preload() {
         // Cargar el fondo y el enemigo
-        this.load.image('background', 'src/assets/background/fondo2.png');
+        this.load.image('background', 'src/assets/background/fondo1.png');
         // Delegar la carga del enemigo al módulo
         preloadEnemies(this);
         
@@ -29,8 +29,8 @@ class MainScene extends Phaser.Scene {
 
         // Plataforma
         g.fillStyle(0xffffff, 1);
-        g.fillRect(0, 0, 200, 16);
-        g.generateTexture('platform', 200, 16);
+        g.fillRect(0, 0, 400, 16);
+        g.generateTexture('platform', 400, 16);
         g.clear();
 
         // Escalera
@@ -64,23 +64,28 @@ class MainScene extends Phaser.Scene {
         const width = this.scale.width;
         const height = this.scale.height;
 
+        const totalFloors = 5;
+        const floorHeight = 200;
+        const worldHeight = totalFloors * floorHeight;
+        
         // Mundo
         this.background = this.add.image(width/2, height/2, 'background').setDisplaySize(width, height);
-        this.physics.world.setBounds(0, 0, width, height);
+        this.physics.world.setBounds(0, 0, width, worldHeight);
 
         // Plataformas (5 pisos de casa embrujada)
         this.platforms = this.physics.add.staticGroup();
 
-        const floorsY = [500, 400, 300, 200, 100]; // de abajo a arriba
-        floorsY.forEach((y) => {
-            // 3 tramos con huecos (para escalera y saltos)
-            this.platforms.create(120, y, 'platform').setScale(1, 1).refreshBody();
-            this.platforms.create(480, y, 'platform').refreshBody();
-            this.platforms.create(840, y, 'platform').refreshBody();
-        });
+        const floorsY = [];
+        for (let i = 0; i < totalFloors; i++) {
+            const y = worldHeight - (i * floorHeight) - 40;
+            floorsY.push(y);
+            this.platforms.create(width * 0.2, y, 'platform').setScale(1.5, 1).refreshBody();
+            this.platforms.create(width * 0.5, y, 'platform').setScale(1, 1).refreshBody();
+            this.platforms.create(width * 0.75, y, 'platform').setScale(1, 1).refreshBody();
+        }
 
         // Jugador
-        this.player = this.physics.add.sprite(80, floorsY[0] - 40, 'player');
+        this.player = this.physics.add.sprite(80, floorsY[totalFloors - 1] - 40, 'player');
         this.player.setCollideWorldBounds(true);
         this.player.body.setSize(20, 26).setOffset(4, 2);
 
@@ -124,8 +129,8 @@ class MainScene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
 
         // Cámara
-        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-        this.cameras.main.setBounds(0, 0, width, height);
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+        this.cameras.main.setBounds(0, 0, width, worldHeight);
 
         // UI simple
         this.ui = this.add.text(12, 12, 'Llaves: 0/3', { fontFamily: 'Arial', fontSize: 18, color: '#ffffff' }).setScrollFactor(0);
