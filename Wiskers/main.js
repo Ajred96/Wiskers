@@ -130,8 +130,8 @@ class MainScene extends Phaser.Scene {
             repeat: -1
         });
         
-        this.ghost.setScale(1);
-        this.ghost.setAlpha(1);
+        this.ghost.setScale(0.8);
+        this.ghost.setAlpha(0.8);
         this.ghost.body.setSize(160, 160);
         this.ghost.body.setOffset(20, 20);
         this.ghost.body.setAllowGravity(false);
