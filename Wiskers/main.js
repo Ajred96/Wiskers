@@ -10,7 +10,6 @@ class MainScene extends Phaser.Scene {
     preload() {
         // Cargar el fondo y el enemigo
         this.load.image('background', 'src/assets/background/fondo1.png');
-        // Cargar el sprite del fantasma con transparencia
         this.load.spritesheet('ghost', 'src/assets/enemy/gatoInvisibleFinal.png', {
             frameWidth: 200,
             frameHeight: 200,
@@ -64,11 +63,12 @@ class MainScene extends Phaser.Scene {
     }
 
     create() {
-        const width = 960;
-        const height = 540;
+        // Usar el tamaño gestionado por Phaser (scale manager).
+        const width = this.scale.width;
+        const height = this.scale.height;
 
         // Mundo
-        this.add.image(width/2, height/2, 'background').setDisplaySize(width, height);
+        this.background = this.add.image(width/2, height/2, 'background').setDisplaySize(width, height);
         this.physics.world.setBounds(0, 0, width, height);
 
         // Plataformas (5 pisos de casa embrujada)
@@ -115,8 +115,8 @@ class MainScene extends Phaser.Scene {
             k.setScale(1);
         });
 
-        // Puerta en el ático (piso superior)
-        this.door = this.physics.add.staticSprite(width - 60, floorsY[4] - 27, 'door');
+    
+    this.door = this.physics.add.staticSprite(width - 60, floorsY[4] - 27, 'door');
         this.doorOpen = false;
 
         // Fantasma que patrulla el 3er piso
@@ -164,6 +164,20 @@ class MainScene extends Phaser.Scene {
 
         // Estado de escalera
         this.onLadder = false;
+
+        // Manejar redimensionamiento gestionado por Phaser (FIT). Actualiza bounds y fondo.
+        this.scale.on('resize', (gameSize) => {
+            const w = gameSize.width;
+            const h = gameSize.height;
+            // actualizar background y bounds
+            if (this.background) this.background.setDisplaySize(w, h).setPosition(w/2, h/2);
+            if (this.cameras && this.cameras.main) this.cameras.main.setBounds(0, 0, w, h);
+            if (this.physics && this.physics.world) this.physics.world.setBounds(0, 0, w, h);
+            // ajustar UI
+            if (this.msg) this.msg.setPosition(w/2, 40);
+            // reposicionar puerta respecto al nuevo ancho
+            if (this.door) this.door.setPosition(w - 60, floorsY[4] - 27);
+        });
     }
 
     onLadderOverlap(player, ladder) {
@@ -243,11 +257,18 @@ class MainScene extends Phaser.Scene {
     }
 }
 
+const BASE_WIDTH = 960;
+const BASE_HEIGHT = 540;
+
 const config = {
     type: Phaser.AUTO,
-    parent: 'game',
-    width: 960,
-    height: 540,
+    scale: {
+        mode: Phaser.Scale.RESIZE, // usar RESIZE para que la resolución del canvas se ajuste al contenedor
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        parent: 'game',
+        width: BASE_WIDTH,
+        height: BASE_HEIGHT
+    },
     backgroundColor: '#1f3c5b',
     physics: {
         default: 'arcade',
@@ -259,4 +280,17 @@ const config = {
     scene: [MainScene]
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+// Asegurarnos de que el canvas tenga la resolución del contenedor #game para evitar scaling CSS
+function resizeGameToContainer() {
+    const container = document.getElementById('game');
+    if (!container || !game || !game.scale) return;
+    const w = Math.max(1, Math.floor(container.clientWidth));
+    const h = Math.max(1, Math.floor(container.clientHeight));
+    game.scale.resize(w, h);
+}
+
+// Llamar al inicio y cuando cambie la ventana
+window.addEventListener('load', () => resizeGameToContainer());
+window.addEventListener('resize', () => resizeGameToContainer());

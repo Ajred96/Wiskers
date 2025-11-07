@@ -26,20 +26,13 @@ body {
   margin: 0;
   display: flex;
   place-items: center;
-  min-width: 320px;
+  min-width: 100%;
   min-height: 100vh;
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
 }
 
 .logo {
@@ -94,3 +87,29 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* ===== Estilos para el contenedor del juego (90% del viewport) ===== */
+#game {
+  width: 90vw;              /* 90% del ancho de la ventana */
+  height: 90vh;             /* 90% del alto de la ventana */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  margin: 0 auto;
+  border: none;             /* quitar borde visible */
+  box-shadow: none;         /* quitar sombras */
+  outline: none;            /* quitar outline de foco */
+}
+
+/* Dejar que Phaser controle el tamaño real del canvas (evitar !important que lo fuerce) */
+#game canvas {
+  display: block;
+  border: none;
+  box-shadow: none;
+  outline: none;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Fin estilos del contenedor de juego */
