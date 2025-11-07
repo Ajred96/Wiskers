@@ -8,6 +8,9 @@ class MainScene extends Phaser.Scene {
     }
 
     preload() {
+        // Cargar el fondo
+        this.load.image('background', 'src/assets/background/fondo1.png');
+        
         // Generar texturas simples (no necesitas imágenes)
         const g = this.make.graphics({ x: 0, y: 0, add: false });
 
@@ -68,7 +71,7 @@ class MainScene extends Phaser.Scene {
         const height = 540;
 
         // Mundo
-        this.cameras.main.setBackgroundColor('#1f3c5b');
+        this.add.image(width/2, height/2, 'background').setDisplaySize(width, height);
         this.physics.world.setBounds(0, 0, width, height);
 
         // Plataformas (5 pisos de casa embrujada)
