@@ -1,38 +1,32 @@
 import Phaser from 'phaser';
 
-// AJUSTA si tu sheet NO es 5x4:
-const COLUMNS = 5;
-const ROWS = 4;
-
-// Si ya conoces el tamaño del frame, puedes ponerlo aquí y quitar el cálculo.
-// const FRAME_W = 244;
-// const FRAME_H = 251;
-
 export default class BootScene extends Phaser.Scene {
     constructor() {
         super('BootScene');
     }
 
     preload() {
+        // Fondo
         this.load.image('background', '/assets/background/fondo1.png');
 
-        // Idle (imagen quieta)
+        // Imagen estática (quieto)
         this.load.image('gatoIdle', '/assets/player/gatoBueno.png');
 
-        // Walk (spritesheet 5x4)
-        this.load.spritesheet('gatoWalk', '/assets/player/gatoBuenoCaminando.png', {
-            frameWidth: 369,   // 1846 / 5
-            frameHeight: 232,  //  929 / 4
-        });
+        // Cargar cada frame del gato caminando exportado desde Unity
+        for (let i = 0; i < 20; i++) { // Ajusta 20 al número real de frames exportados
+            this.load.image(`gatoWalk_${i}`, `/assets/player/gatoBuenoCaminando/gatoBuenoCaminando_${i}.png`);
+        }
 
-        // === Mundo (plataformas, escaleras, etc.) ===
-        const g = this.make.graphics({ x: 0, y: 0, add: false });
+        // === Mundo (plataformas, escaleras, llaves, puerta) ===
+        const g = this.make.graphics({x: 0, y: 0, add: false});
 
+        // Plataforma
         g.fillStyle(0xffffff, 1);
         g.fillRect(0, 0, 400, 16);
         g.generateTexture('platform', 400, 16);
         g.clear();
 
+        // Escalera
         g.fillStyle(0x9bb3d1, 1);
         g.fillRect(0, 0, 24, 120);
         for (let y = 10; y < 120; y += 14) {
@@ -42,12 +36,14 @@ export default class BootScene extends Phaser.Scene {
         g.generateTexture('ladder', 24, 120);
         g.clear();
 
+        // Llave
         g.fillStyle(0xffdd57, 1);
         g.fillRect(0, 0, 12, 6);
         g.fillCircle(12, 3, 5);
         g.generateTexture('key', 18, 12);
         g.clear();
 
+        // Puerta
         g.fillStyle(0x6b3a2e, 1);
         g.fillRoundedRect(0, 0, 34, 54, 6);
         g.fillStyle(0x2b1813, 1);
@@ -57,21 +53,23 @@ export default class BootScene extends Phaser.Scene {
     }
 
     create() {
+        // Animación caminando (usa los 20 frames)
         this.anims.create({
             key: 'player-walk',
-            frames: this.anims.generateFrameNumbers('gatoWalk', { start: 0, end: 19 }),
-            frameRate: 8,
+            frames: Array.from({length: 20}, (_, i) => ({key: `gatoWalk_${i}`})),
+            frameRate: 10,
             repeat: -1
         });
 
+        // Animación quieto (usa la imagen estática)
         this.anims.create({
             key: 'player-idle',
-            frames: [{ key: 'gatoIdle' }],
+            frames: [{key: 'gatoIdle'}],
             frameRate: 1,
             repeat: -1
         });
 
+        // Ir a la escena del juego
         this.scene.start('GameScene');
     }
-
 }

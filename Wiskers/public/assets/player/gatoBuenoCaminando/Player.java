@@ -3,7 +3,6 @@ import Phaser from 'phaser';
 export default class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'gatoIdle');
-
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
@@ -13,35 +12,31 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.speed = 200;
         this.jumpVel = -360;
 
-        // === Escalado base según la animación caminando ===
-        // Calculamos la proporción real del gatoIdle vs gatoWalk para igualarlos visualmente
-        const walkFrame = scene.textures.get('gatoWalk_0').getSourceImage();
+        // ====== ESCALADO AUTOMÁTICO ======
         const idleImg = scene.textures.get('gatoIdle').getSourceImage();
+        const walkFrame0 = scene.textures.get('gatoWalk').get(0);
 
-        const walkH = walkFrame.height;
-        const idleH = idleImg.height;
-
-        // Compensamos diferencia de tamaño entre los dos assets
-        const sizeRatio = (walkH / idleH);
-
-        // Escala base (ajusta si lo ves muy grande o pequeño)
+        // Ajuste base
         const BASE_SCALE = 0.2;
 
-        // Aplicamos la escala corregida al gato quieto
-        this.setScale(BASE_SCALE * sizeRatio);
+        // Ajuste automático según proporción real
+        const idleHeight = 1024;
+        const walkFrameHeight = 929 / 4; // 4 filas
+        const ratio = walkFrameHeight / idleHeight;
 
-        // Guardamos escala base para el resto de animaciones
-        this.baseScale = BASE_SCALE;
-        this.sizeRatio = sizeRatio;
+        // Compensación pequeña para igualar márgenes visuales
+        const COMPENSATION = 4.4; // según cálculo real
+        this.setScale(BASE_SCALE * ratio * COMPENSATION);
+
 
         this.refreshHitbox();
+
         this.playIdle();
     }
 
     playIdle() {
         if (this.anims.currentAnim?.key !== 'player-idle') {
             this.setTexture('gatoIdle');
-            this.setScale(this.baseScale * this.sizeRatio); // igualar tamaño con "walk"
             this.anims.play('player-idle');
             this.refreshHitbox();
         }
@@ -49,30 +44,28 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     playWalk() {
         if (this.anims.currentAnim?.key !== 'player-walk') {
-            this.setTexture('gatoWalk_0');
-            this.setScale(this.baseScale); // tamaño original de los frames caminando
+            this.setTexture('gatoWalk', 0); // fuerza el sheet correcto
             this.anims.play('player-walk', true);
             this.refreshHitbox();
         }
     }
 
     refreshHitbox() {
-        const w = this.width;
-        const h = this.height;
-        this.body.setSize(w * 0.4, h * 0.6);
-        this.body.setOffset(w * 0.3, h * 0.35);
+        this.body.setSize(this.width * 0.4, this.height * 0.6);
+        this.body.setOffset(this.width * 0.3, this.height * 0.35);
     }
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
 
-        const {left, right, space} = this.cursors;
+        const left = this.cursors.left.isDown;
+        const right = this.cursors.right.isDown;
 
-        if (left.isDown) {
+        if (left) {
             this.setVelocityX(-this.speed);
             this.setFlipX(true);
             this.playWalk();
-        } else if (right.isDown) {
+        } else if (right) {
             this.setVelocityX(this.speed);
             this.setFlipX(false);
             this.playWalk();
@@ -82,7 +75,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         const onFloor = this.body.blocked.down;
-        if (onFloor && Phaser.Input.Keyboard.JustDown(space)) {
+        if (onFloor && Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
             this.setVelocityY(this.jumpVel);
         }
     }
