@@ -80,9 +80,11 @@ export default class GameScene extends Phaser.Scene {
 
         // Escaleras
         this.ladders = this.physics.add.staticGroup();
-        [450, 270, 700, 360].forEach((x, i) => {
-            const ladder = this.ladders.create(x, this.rooms[i].solidFloor.y - 60, 'ladder');
+        [500, 270, 700, 360].forEach((x, i) => {
+            const floor = this.rooms[i].solidFloor;
+            const ladder = this.ladders.create(x,floor.y - floorHeight /2, 'ladder');
             ladder.isLadder = true;
+            ladder.setDisplaySize(ladder.width, floorHeight-18);
             ladder.refreshBody();
         });
 
