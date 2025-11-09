@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import BootScene from './src/scenes/BootScene.js';
 import GameScene from './src/scenes/GameScene.js';
+import MultiFloorScene from './src/scenes/MultiFloorScene.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -19,7 +20,7 @@ const config = {
             debug: false
         }
     },
-    scene: [BootScene, GameScene]
+    scene: [BootScene, GameScene,MultiFloorScene]
 };
 
 new Phaser.Game(config);

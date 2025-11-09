@@ -134,6 +134,12 @@ export default class GameScene extends Phaser.Scene {
             this.msg.setPosition(w / 2, 40);
             this.door.setPosition(w - 60, floorsY[4] - 27);
         });
+        const keyboard = this.input.keyboard;
+        this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.add.text(160,  160, "Presiona E para salir de la casa", {
+            fontSize: "16px",
+            color: "#fff"
+        }).setScrollFactor(1);
     }
 
     update() {
@@ -201,8 +207,20 @@ export default class GameScene extends Phaser.Scene {
             player.body.allowGravity = true;
             if (this.activeCollider) this.activeCollider.active = true;
         }
+        // salida de la casa
+        if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+            const dist = Phaser.Math.Distance.Between(
+                player.x,
+                player.y,
+                this.door.x,
+                this.door.y
+            );
+            if (dist < 100) {
+                this.scene.start('MultiFloorScene');
+            }
+        }
     }
-
+    
     startClimb(ladder, direction) {
         this.isTransitioning = true;
         this.player.body.allowGravity = false;
