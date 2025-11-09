@@ -79,13 +79,13 @@ export default class GameScene extends Phaser.Scene {
         this.onLadder = false;
 
         // Resize
-        this.scale.on('resize', (gameSize) => {
+        /*this.scale.on('resize', (gameSize) => {
             const w = gameSize.width;
             const h = gameSize.height;
             this.cameras.main.setBounds(0, 0, w, worldHeight);
             this.msg.setPosition(w / 2, 40);
             this.door.setPosition(w - 60, floorsY[4] - 27);
-        });
+        });*/
         const keyboard = this.input.keyboard;
         this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.add.text(160,  160, "Presiona E para salir de la casa", {

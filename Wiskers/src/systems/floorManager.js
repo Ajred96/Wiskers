@@ -9,27 +9,31 @@ export function createFloors(scene, width, height) {
 
     const rooms = [];
     const platforms = [];
-
+    const colors = [0x7b5ba0, 0x9f73b5, 0x6f5fa8, 0x836ab5]; 
     for (let i = 0; i < totalFloors; i++) {
         const yTop = worldHeight - (i * floorHeight);
         const yBottom = yTop - floorHeight;
         const yCenter = (yTop + yBottom) / 2;
 
         // --- Fondo del piso ---
+        const scrollOffsetY = i * 30;
         const roomBg = scene.add.tileSprite(
             width / 2,
             yCenter,
             width,
-            floorHeight,
+            floorHeight+5,
             'roomTexture'
         )
         .setDepth(-5)
-        .setScrollFactor(1);
+        .setTint(colors[i % colors.length])
+        .setScrollFactor(1)
+        .setTilePosition(0, scrollOffsetY)
+        .setAlpha(0.9);
 
         // --- Piso visible (textura del suelo) ---
         const tileFloor = scene.add.tileSprite(
             width / 2,
-            yTop - 10,
+            yTop,
             width,
             60,
             'floorTexture'
