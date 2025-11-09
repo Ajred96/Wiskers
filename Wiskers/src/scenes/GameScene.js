@@ -12,6 +12,8 @@ export default class GameScene extends Phaser.Scene {
     preload() {
         // Si tus enemigos necesitan assets:
         preloadEnemies?.(this);
+        this.load.image('floorTexture', '/assets/background/textures/floor.png');
+        this.load.image('roomTexture', '/assets/background/fondo3.png');
     }
 
     create() {
@@ -23,46 +25,86 @@ export default class GameScene extends Phaser.Scene {
         const floorHeight = 200;
         const worldHeight = totalFloors * floorHeight;
 
-        this.add.image(width / 2, height / 2, 'background').setDisplaySize(width, height).setScrollFactor(0);
+        //this.add.image(width / 2, height / 2, 'background').setDisplaySize(width, height).setScrollFactor(0);
         this.physics.world.setBounds(0, 0, width, worldHeight);
-
+        //PISOS
+        this.rooms = [];
+        this.platforms = [];
         // Plataformas
-        this.platforms = this.physics.add.staticGroup();
-        const floorsY = [];
         for (let i = 0; i < totalFloors; i++) {
-            const y = worldHeight - (i * floorHeight) - 40;
-            floorsY.push(y);
-            this.platforms.create(width * 0.2, y, 'platform').refreshBody();
-            this.platforms.create(width * 0.5, y, 'platform').refreshBody();
-            this.platforms.create(width * 0.8, y, 'platform').refreshBody();
-        }
+            const yTop = worldHeight - (i * floorHeight);
+            const yBottom = yTop - floorHeight;
+            const yCenter = (yTop + yBottom) / 2;
 
+            // Fondo del piso
+            /*const bg = this.add.image(width / 2, yCenter, roomBackgrounds[i])
+                .setDisplaySize(width, floorHeight)
+                .setDepth(-6);*/
+            const roomBg = this.add.tileSprite(
+                width / 2, yCenter,
+                width, floorHeight,
+                'roomTexture'
+            )
+            .setDepth(-1)
+            .setScrollFactor(1);
+            // --- Piso con textura visible ---
+            const tileFloor = this.add.tileSprite(
+                width / 2,      // posición X centrada
+                yTop - 10,      // posición Y
+                width,          // ancho total
+                60,             // alto visible de la textura
+                'floorTexture'  // textura
+            )
+            .setOrigin(0.5, 1)
+            .setDepth(-4);
+
+            // --- Cuerpo físico invisible (colisionable) ---
+            const solidFloor = this.add.rectangle(
+                width / 2,
+                yTop - 10,
+                width,
+                20,
+                0x000000,
+                0 // invisible
+            );
+            this.physics.add.existing(solidFloor, true); // cuerpo estático
+            solidFloor.visible = false;
+
+            this.rooms.push({ roomBg, tileFloor, solidFloor });
+            this.platforms.push(solidFloor);
+        }
         // Jugador
-        this.player = new Player(this, 80, floorsY[totalFloors - 1] - 40);
+        const startY = this.rooms[this.rooms.length-1].solidFloor.y + worldHeight;
+        this.player = new Player(this, 80, startY);
         this.physics.add.collider(this.player, this.platforms);
 
         // Escaleras
         this.ladders = this.physics.add.staticGroup();
         [450, 270, 700, 360].forEach((x, i) => {
-            const ladder = this.ladders.create(x, floorsY[i] - 60, 'ladder');
+            const ladder = this.ladders.create(x, this.rooms[i].solidFloor.y - 60, 'ladder');
             ladder.isLadder = true;
             ladder.refreshBody();
         });
 
-        // Llaves
         this.keysGroup = this.physics.add.group({ allowGravity: false, immovable: true });
         [
-            { x: 820, y: floorsY[0] - 20 },
-            { x: 300, y: floorsY[2] - 20 },
-            { x: 900, y: floorsY[3] - 20 }
+            { x: 820, y: this.rooms[0].solidFloor.y - 20 },
+            { x: 300, y: this.rooms[2].solidFloor.y - 20 },
+            { x: 900, y: this.rooms[3].solidFloor.y - 20 }
         ].forEach(p => this.keysGroup.create(p.x, p.y, 'key'));
+
 
         // Puerta (ático)
         this.doorOpen = false;
-        this.door = this.physics.add.staticSprite(width - 60, floorsY[4] - 27, 'door');
+        this.door = this.physics.add.staticSprite(width - 60, this.rooms[4].solidFloor.y - 27, 'door');
 
-        // Enemigos (tu módulo)
-        this.enemies = createEnemies?.(this) ?? [];
+        // Enemigos
+        this.enemies = createEnemies?.(this) || [];
+        this.enemies.forEach(enemy => {
+            this.platforms.forEach(floor => {
+                this.physics.add.collider(enemy, floor);
+            });
+        });
 
         // Overlaps
         this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
