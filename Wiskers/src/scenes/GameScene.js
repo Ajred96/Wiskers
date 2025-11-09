@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
-import { preloadEnemies, createEnemies } from '../enemies/index.js'; // tu módulo
+import { preloadEnemies, createEnemies } from '../enemies/index.js';
+import { createFloors } from '../systems/floorManager.js'; 
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -10,8 +11,8 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        // Si tus enemigos necesitan assets:
         preloadEnemies?.(this);
+        // Texturas necesarias por el floorManager
         this.load.image('floorTexture', '/assets/background/textures/floor.png');
         this.load.image('roomTexture', '/assets/background/fondo3.png');
     }
@@ -20,81 +21,33 @@ export default class GameScene extends Phaser.Scene {
         const width = this.scale.width;
         const height = this.scale.height;
 
-        // Fondo y mundo alto (5 pisos)
-        const totalFloors = 5;
-        const floorHeight = 200;
-        const worldHeight = totalFloors * floorHeight;
+        // 🔹 Llamada al manager para crear pisos y fondos
+        const { rooms, platforms, worldHeight } = createFloors(this, width, height);
+        this.rooms = rooms;
+        this.platforms = platforms;
 
-        //this.add.image(width / 2, height / 2, 'background').setDisplaySize(width, height).setScrollFactor(0);
-        this.physics.world.setBounds(0, 0, width, worldHeight);
-        //PISOS
-        this.rooms = [];
-        this.platforms = [];
-        // Plataformas
-        for (let i = 0; i < totalFloors; i++) {
-            const yTop = worldHeight - (i * floorHeight);
-            const yBottom = yTop - floorHeight;
-            const yCenter = (yTop + yBottom) / 2;
-
-            // Fondo del piso
-            /*const bg = this.add.image(width / 2, yCenter, roomBackgrounds[i])
-                .setDisplaySize(width, floorHeight)
-                .setDepth(-6);*/
-            const roomBg = this.add.tileSprite(
-                width / 2, yCenter,
-                width, floorHeight,
-                'roomTexture'
-            )
-            .setDepth(-1)
-            .setScrollFactor(1);
-            // --- Piso con textura visible ---
-            const tileFloor = this.add.tileSprite(
-                width / 2,      // posición X centrada
-                yTop - 10,      // posición Y
-                width,          // ancho total
-                60,             // alto visible de la textura
-                'floorTexture'  // textura
-            )
-            .setOrigin(0.5, 1)
-            .setDepth(-4);
-
-            // --- Cuerpo físico invisible (colisionable) ---
-            const solidFloor = this.add.rectangle(
-                width / 2,
-                yTop - 10,
-                width,
-                20,
-                0x000000,
-                0 // invisible
-            );
-            this.physics.add.existing(solidFloor, true); // cuerpo estático
-            solidFloor.visible = false;
-
-            this.rooms.push({ roomBg, tileFloor, solidFloor });
-            this.platforms.push(solidFloor);
-        }
         // Jugador
-        const startY = this.rooms[this.rooms.length-1].solidFloor.y + worldHeight;
+        const startY = this.rooms[this.rooms.length - 1].solidFloor.y + worldHeight;
         this.player = new Player(this, 80, startY);
-        //this.physics.add.collider(this.player, this.platforms);
 
         // Escaleras
+        const floorHeight = 200;
         this.ladders = this.physics.add.staticGroup();
         [500, 270, 700, 360].forEach((x, i) => {
             const floor = this.rooms[i].solidFloor;
-            const ladder = this.ladders.create(x,floor.y -13- floorHeight /2, 'ladder');
+            const ladder = this.ladders.create(x, floor.y - 13 - floorHeight / 2, 'ladder');
             ladder.isLadder = true;
-            ladder.setDisplaySize(ladder.width, floorHeight-10);
+            ladder.setDisplaySize(ladder.width, floorHeight - 10);
             ladder.refreshBody();
         });
 
+        // Llaves
         this.keysGroup = this.physics.add.group({ allowGravity: false, immovable: true });
         [
             { x: 820, y: this.rooms[0].solidFloor.y - 20 },
             { x: 300, y: this.rooms[2].solidFloor.y - 20 },
             { x: 900, y: this.rooms[3].solidFloor.y - 20 }
         ].forEach(p => this.keysGroup.create(p.x, p.y, 'key'));
-
 
         // Puerta (ático)
         this.doorOpen = false;
@@ -111,7 +64,7 @@ export default class GameScene extends Phaser.Scene {
         // Overlaps
         this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
         this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
-        // Si tu módulo crea `this.ghost`, aún puedes usarlo:
+
         if (this.ghost) this.physics.add.overlap(this.player, this.ghost, this.hitGhost, null, this);
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
 
@@ -186,23 +139,11 @@ export default class GameScene extends Phaser.Scene {
             else if (down) player.setVelocityY(110);
             else player.setVelocityY(0);
 
-            // Piso superior más cercano
-            const upperFloor = this.platforms
-                .filter(f => f.y < player.y)
-                .sort((a, b) => b.y - a.y)[0];
+            const upperFloor = this.platforms.filter(f => f.y < player.y).sort((a, b) => b.y - a.y)[0];
+            if (up && upperFloor && player.y <= upperFloor.y + 8) this.moveToFloor(upperFloor, -1);
 
-            if (up && upperFloor && player.y <= upperFloor.y + 8) {
-                this.moveToFloor(upperFloor, -1);
-            }
-
-            // Piso inferior más cercano
-            const lowerFloor = this.platforms
-                .filter(f => f.y > player.y)
-                .sort((a, b) => a.y - b.y)[0];
-
-            if (down && lowerFloor && player.y >= lowerFloor.y - 40) {
-                this.moveToFloor(lowerFloor, 1);
-            }
+            const lowerFloor = this.platforms.filter(f => f.y > player.y).sort((a, b) => a.y - b.y)[0];
+            if (down && lowerFloor && player.y >= lowerFloor.y - 40) this.moveToFloor(lowerFloor, 1);
         } else {
             player.body.allowGravity = true;
             if (this.activeCollider) this.activeCollider.active = true;
