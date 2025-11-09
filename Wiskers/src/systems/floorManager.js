@@ -55,5 +55,5 @@ export function createFloors(scene, width, height) {
     }
 
     // Retornamos todo lo necesario para usar en la escena
-    return { rooms, platforms, worldHeight };
+    return { rooms, platforms, worldHeight,floorHeight };
 }

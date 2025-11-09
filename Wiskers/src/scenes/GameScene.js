@@ -22,7 +22,7 @@ export default class GameScene extends Phaser.Scene {
         const height = this.scale.height;
 
         // 🔹 Llamada al manager para crear pisos y fondos
-        const { rooms, platforms, worldHeight } = createFloors(this, width, height);
+        const { rooms, platforms, worldHeight,floorHeight } = createFloors(this, width, height);
         this.rooms = rooms;
         this.platforms = platforms;
 
@@ -31,7 +31,6 @@ export default class GameScene extends Phaser.Scene {
         this.player = new Player(this, 80, startY);
 
         // Escaleras
-        const floorHeight = 200;
         this.ladders = this.physics.add.staticGroup();
         [500, 270, 700, 360].forEach((x, i) => {
             const floor = this.rooms[i].solidFloor;
