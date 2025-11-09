@@ -14,7 +14,7 @@ export default class GameScene extends Phaser.Scene {
         preloadEnemies?.(this);
         // Texturas necesarias por el floorManager
         this.load.image('floorTexture', '/assets/background/textures/floor.png');
-        this.load.image('roomTexture', '/assets/background/fondo3.png');
+        this.load.image('roomTexture', '/assets/background/textures/wall2.png');
     }
 
     create() {

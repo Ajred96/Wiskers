@@ -23,7 +23,7 @@ export function createFloors(scene, width, height) {
             floorHeight,
             'roomTexture'
         )
-        .setDepth(-1)
+        .setDepth(-5)
         .setScrollFactor(1);
 
         // --- Piso visible (textura del suelo) ---
