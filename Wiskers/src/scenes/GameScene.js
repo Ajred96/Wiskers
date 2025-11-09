@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
-import { preloadEnemies, createEnemies } from '../enemies/index.js'; // tu módulo
+import { preloadEnemies, createEnemies } from '../enemies/index.js';
+import { createFloors } from '../systems/floorManager.js'; 
+import { createLadders, updateLadders } from '../systems/laddersManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -10,64 +12,52 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        // Si tus enemigos necesitan assets:
         preloadEnemies?.(this);
+        // Texturas necesarias por el floorManager
+        this.load.image('floorTexture', '/assets/background/textures/floor.png');
+        this.load.image('roomTexture', '/assets/background/textures/wall2.png');
     }
 
     create() {
         const width = this.scale.width;
         const height = this.scale.height;
 
-        // Fondo y mundo alto (5 pisos)
-        const totalFloors = 5;
-        const floorHeight = 200;
-        const worldHeight = totalFloors * floorHeight;
-
-        this.add.image(width / 2, height / 2, 'background').setDisplaySize(width, height).setScrollFactor(0);
-        this.physics.world.setBounds(0, 0, width, worldHeight);
-
-        // Plataformas
-        this.platforms = this.physics.add.staticGroup();
-        const floorsY = [];
-        for (let i = 0; i < totalFloors; i++) {
-            const y = worldHeight - (i * floorHeight) - 40;
-            floorsY.push(y);
-            this.platforms.create(width * 0.2, y, 'platform').refreshBody();
-            this.platforms.create(width * 0.5, y, 'platform').refreshBody();
-            this.platforms.create(width * 0.8, y, 'platform').refreshBody();
-        }
+        // 🔹 Llamada al manager para crear pisos y fondos
+        const { rooms, platforms, worldHeight,floorHeight } = createFloors(this, width, height);
+        this.rooms = rooms;
+        this.platforms = platforms;
 
         // Jugador
-        this.player = new Player(this, 80, floorsY[totalFloors - 1] - 40);
-        this.physics.add.collider(this.player, this.platforms);
+        const startY = this.rooms[this.rooms.length - 1].solidFloor.y + worldHeight;
+        this.player = new Player(this, 80, startY);
 
         // Escaleras
-        this.ladders = this.physics.add.staticGroup();
-        [450, 270, 700, 360].forEach((x, i) => {
-            const ladder = this.ladders.create(x, floorsY[i] - 60, 'ladder');
-            ladder.isLadder = true;
-            ladder.refreshBody();
-        });
+        this.ladders = createLadders(this, rooms, floorHeight);
 
         // Llaves
         this.keysGroup = this.physics.add.group({ allowGravity: false, immovable: true });
         [
-            { x: 820, y: floorsY[0] - 20 },
-            { x: 300, y: floorsY[2] - 20 },
-            { x: 900, y: floorsY[3] - 20 }
+            { x: 820, y: this.rooms[0].solidFloor.y - 20 },
+            { x: 300, y: this.rooms[2].solidFloor.y - 20 },
+            { x: 900, y: this.rooms[3].solidFloor.y - 20 }
         ].forEach(p => this.keysGroup.create(p.x, p.y, 'key'));
 
         // Puerta (ático)
         this.doorOpen = false;
-        this.door = this.physics.add.staticSprite(width - 60, floorsY[4] - 27, 'door');
+        this.door = this.physics.add.staticSprite(width - 60, this.rooms[4].solidFloor.y - 27, 'door');
 
-        // Enemigos (tu módulo)
-        this.enemies = createEnemies?.(this) ?? [];
+        // Enemigos
+        this.enemies = createEnemies?.(this) || [];
+        this.enemies.forEach(enemy => {
+            this.platforms.forEach(floor => {
+                this.physics.add.collider(enemy, floor);
+            });
+        });
 
         // Overlaps
-        this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
+       // this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
         this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
-        // Si tu módulo crea `this.ghost`, aún puedes usarlo:
+
         if (this.ghost) this.physics.add.overlap(this.player, this.ghost, this.hitGhost, null, this);
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
 
@@ -80,33 +70,46 @@ export default class GameScene extends Phaser.Scene {
         this.msg = this.add.text(width / 2, 40, '', { fontFamily: 'Arial', fontSize: 22, color: '#ffeb3b' }).setOrigin(0.5, 0).setScrollFactor(0);
 
         // Escaleras
-        this.onLadder = false;
+        //sthis.onLadder = false;
 
         // Resize
-        this.scale.on('resize', (gameSize) => {
+        /*this.scale.on('resize', (gameSize) => {
             const w = gameSize.width;
             const h = gameSize.height;
             this.cameras.main.setBounds(0, 0, w, worldHeight);
             this.msg.setPosition(w / 2, 40);
             this.door.setPosition(w - 60, floorsY[4] - 27);
-        });
+        });*/
+        const keyboard = this.input.keyboard;
+        this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.add.text(160,  160, "Presiona E para salir de la casa", {
+            fontSize: "16px",
+            color: "#fff"
+        }).setScrollFactor(1);
     }
 
     update() {
-        const wasOnLadder = this.onLadder;
-        this.onLadder = false;
+        const cursors = this.input.keyboard.createCursorKeys();
+        const up = cursors.up.isDown;
+        const down = cursors.down.isDown;
+        const player = this.player;
 
-        // Escaleras simples: si está dentro y pulsa up/down, escalar
-        const up = this.input.keyboard.createCursorKeys().up.isDown;
-        const down = this.input.keyboard.createCursorKeys().down.isDown;
-
-        if (wasOnLadder && (up || down)) {
-            this.player.body.allowGravity = false;
-            this.player.setVelocityY(up ? -110 : (down ? 110 : 0));
-        } else {
-            this.player.body.allowGravity = true;
+        // Resetear bandera de escalera
+        updateLadders(this, cursors);
+        // salida de la casa
+        if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+            const dist = Phaser.Math.Distance.Between(
+                player.x,
+                player.y,
+                this.door.x,
+                this.door.y
+            );
+            if (dist < 100) {
+                this.scene.start('MultiFloorScene');
+            }
         }
     }
+    
 
     collectKey = (_, key) => {
         key.destroy();

@@ -54,5 +54,7 @@ export class GhostEnemy extends EnemyBase {
             frameRate: 10,
             repeat: -1
         });
+        
     }
+    
 }
