@@ -36,13 +36,6 @@ export default class BootScene extends Phaser.Scene {
         g.generateTexture('ladder', 24, 120);
         g.clear();
 
-        // Llave
-        g.fillStyle(0xffdd57, 1);
-        g.fillRect(0, 0, 12, 6);
-        g.fillCircle(12, 3, 5);
-        g.generateTexture('key', 18, 12);
-        g.clear();
-
         // Puerta
         g.fillStyle(0x6b3a2e, 1);
         g.fillRoundedRect(0, 0, 34, 54, 6);

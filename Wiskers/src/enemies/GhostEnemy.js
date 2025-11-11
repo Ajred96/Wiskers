@@ -45,6 +45,13 @@ export class GhostEnemy extends EnemyBase {
         for (let i = 0; i < 20; i++) {
             scene.load.image(`evilCat_${i}`, `/assets/enemy/GatoMaloFlotando/gatoFlotando_${i}.png`);
         }
+
+        for (let i = 0; i < 19; i++) {
+            scene.load.image(
+                `evilCatAttack_${i}`,
+                `/assets/enemy/GatoMaloAtacando/gatoAtaque_${i}.png`
+            );
+        }
     }
 
     static createAnimations(scene) {
@@ -54,7 +61,14 @@ export class GhostEnemy extends EnemyBase {
             frameRate: 10,
             repeat: -1
         });
-        
+
+        scene.anims.create({
+            key: 'evilCat-attack',
+            frames: Array.from({length: 19}, (_, i) => ({key: `evilCatAttack_${i}`})),
+            frameRate: 18,
+            repeat: 0
+        });
+
     }
-    
+
 }

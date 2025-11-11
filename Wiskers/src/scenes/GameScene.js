@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
-import { preloadEnemies, createEnemies } from '../enemies/index.js';
-import { createFloors } from '../systems/floorManager.js'; 
-import { createLadders, updateLadders } from '../systems/laddersManager.js';
+import {preloadEnemies, createEnemies} from '../enemies/index.js';
+import {createFloors} from '../systems/floorManager.js';
+import {createLadders, updateLadders} from '../systems/laddersManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -16,6 +16,9 @@ export default class GameScene extends Phaser.Scene {
         // Texturas necesarias por el floorManager
         this.load.image('floorTexture', '/assets/background/textures/floor.png');
         this.load.image('roomTexture', '/assets/background/textures/wall2.png');
+        this.load.image('key', '/assets/others/llave.png');
+        this.load.image('ectoplasm', '/assets/others/ectoplasma.png');
+        this.load.image('desk', '/assets/others/escritorio.png');
     }
 
     create() {
@@ -23,24 +26,101 @@ export default class GameScene extends Phaser.Scene {
         const height = this.scale.height;
 
         // 🔹 Llamada al manager para crear pisos y fondos
-        const { rooms, platforms, worldHeight,floorHeight } = createFloors(this, width, height);
+        const {rooms, platforms, worldHeight, floorHeight} = createFloors(this, width, height);
         this.rooms = rooms;
         this.platforms = platforms;
 
         // Jugador
         const startY = this.rooms[this.rooms.length - 1].solidFloor.y + worldHeight;
         this.player = new Player(this, 80, startY);
+        this.player.setDepth(10);
 
         // Escaleras
         this.ladders = createLadders(this, rooms, floorHeight);
+        this.ladders.children.iterate(trap => {
+            trap.setDepth(5);
+        });
+
+        // 👻 Trampas de ectoplasma
+        this.ectoplasmGroup = this.physics.add.staticGroup();
+        this.ectoplasmGroup.children.iterate(trap => {
+            trap.setDepth(5);
+        });
+
+        [
+            {x: 600, y: this.rooms[1].solidFloor.y},
+            {x: 1050, y: this.rooms[2].solidFloor.y},
+            {x: 800, y: this.rooms[3].solidFloor.y}
+        ].forEach(p => {
+            const trap = this.ectoplasmGroup.create(p.x, p.y, 'ectoplasm');
+
+            trap.setOrigin(0.5, 1);  // apoyado en el piso
+            trap.setScale(0.2);      // ajusta según lo grande que sea tu PNG
+
+            // Actualizar el cuerpo al nuevo tamaño/posición
+            trap.refreshBody();
+
+            // ⚠️ Reducir el hitbox para que no pegue desde tan lejos
+            const w = trap.width;
+            const h = trap.height;
+
+            // Caja más pequeña (solo la parte central)
+            trap.body.setSize(w * 0.15, h * 0.2, true); // ancho 60%, alto 40%
+            // Opcional: bajar un poco la caja, para que sea más "al ras del piso"
+            trap.body.offset.y += h * 0.3;
+        });
+
+        const floorY = this.rooms[1].solidFloor.y;
+
+        // 🪑 Escritorio
+        this.desk = this.physics.add.staticSprite(1000, floorY, 'desk');
+        this.desk.setOrigin(0.5, 1);   // origen abajo en las patas
+        this.desk.setScale(0.15);      // tamaño visual
+
+        // Actualizar el cuerpo después de origen/escala
+        this.desk.refreshBody();
+
+        // Usar el tamaño REAL del cuerpo (ya escalado)
+        const bw = this.desk.body.width;
+        const bh = this.desk.body.height;
+
+        // Collider: franja en la parte superior, un poco hacia dentro
+        this.desk.body.setSize(bw * 0.8, bh * 0.25);   // ancho 80%, alto 25%
+
+        // Centrado horizontal y pegado a la parte superior
+        this.desk.body.setOffset(bw * 0.1, bh * 0.25);
+
+        this.desk.setDepth(2);
 
         // Llaves
-        this.keysGroup = this.physics.add.group({ allowGravity: false, immovable: true });
+        this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
         [
-            { x: 820, y: this.rooms[0].solidFloor.y - 20 },
-            { x: 300, y: this.rooms[2].solidFloor.y - 20 },
-            { x: 900, y: this.rooms[3].solidFloor.y - 20 }
-        ].forEach(p => this.keysGroup.create(p.x, p.y, 'key'));
+            {x: 820, y: this.rooms[0].solidFloor.y - 40},
+            {x: 300, y: this.rooms[2].solidFloor.y - 40},
+            {x: 900, y: this.rooms[3].solidFloor.y - 40}
+        ].forEach(p => {
+            const key = this.keysGroup.create(p.x, p.y, 'key');
+
+            key.setScale(0.1);      // para una imagen grande como la que pasaste
+            key.setOrigin(0.5, 1);  // que “apoye” en el piso
+
+            // Opcional: ajustar hitbox según la escala
+            if (key.body) {
+                key.body.setSize(key.width, key.height, true);
+            }
+        });
+
+        // tween flotante
+        this.keysGroup.children.iterate(key => {
+            this.tweens.add({
+                targets: key,
+                y: key.y - 10,
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        });
 
         // Puerta (ático)
         this.doorOpen = false;
@@ -54,10 +134,12 @@ export default class GameScene extends Phaser.Scene {
             });
         });
 
-        // Overlaps
-       // this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
-        this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
+        this.physics.add.collider(this.player, this.desk);
 
+        // Overlaps
+        // this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
+        this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
+        this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
         if (this.ghost) this.physics.add.overlap(this.player, this.ghost, this.hitGhost, null, this);
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
 
@@ -66,8 +148,16 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
         // UI
-        this.ui = this.add.text(12, 12, `Llaves: 0/${this.totalKeys}`, { fontFamily: 'Arial', fontSize: 18, color: '#fff' }).setScrollFactor(0);
-        this.msg = this.add.text(width / 2, 40, '', { fontFamily: 'Arial', fontSize: 22, color: '#ffeb3b' }).setOrigin(0.5, 0).setScrollFactor(0);
+        this.ui = this.add.text(12, 12, `Llaves: 0/${this.totalKeys}`, {
+            fontFamily: 'Arial',
+            fontSize: 18,
+            color: '#fff'
+        }).setScrollFactor(0);
+        this.msg = this.add.text(width / 2, 40, '', {
+            fontFamily: 'Arial',
+            fontSize: 22,
+            color: '#ffeb3b'
+        }).setOrigin(0.5, 0).setScrollFactor(0);
 
         // Escaleras
         //sthis.onLadder = false;
@@ -82,7 +172,7 @@ export default class GameScene extends Phaser.Scene {
         });*/
         const keyboard = this.input.keyboard;
         this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-        this.add.text(160,  160, "Presiona E para salir de la casa", {
+        this.add.text(160, 160, "Presiona E para salir de la casa", {
             fontSize: "16px",
             color: "#fff"
         }).setScrollFactor(1);
@@ -96,6 +186,70 @@ export default class GameScene extends Phaser.Scene {
 
         // Resetear bandera de escalera
         updateLadders(this, cursors);
+
+        // Si aún no existe el gráfico, créalo una vez
+        if (!this.debugGraphics) {
+            this.debugGraphics = this.add.graphics();
+        }
+
+        // Limpiar lo que dibujó el frame anterior
+        this.debugGraphics.clear();
+
+        // Estilo del borde (rojo semi transparente)
+        this.debugGraphics.lineStyle(2, 0xff0000, 0.5);
+
+        // 🔳 Colliders del ectoplasma
+        if (this.ectoplasmGroup) {
+            this.ectoplasmGroup.children.iterate(trap => {
+                if (!trap || !trap.body) return;
+                const b = trap.body;
+                this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
+            });
+        }
+
+        if (this.enemies) {
+            this.enemies.forEach(enemy => {
+                const distToPlayer = Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    enemy.x,
+                    enemy.y
+                );
+
+                const ATTACK_RANGE = 90; // distancia a la que el gato ataca
+
+                // 🟡 Dibuja un círculo que representa el rango del enemigo
+                this.debugGraphics.strokeCircle(enemy.x, enemy.y, ATTACK_RANGE);
+
+                if (distToPlayer < ATTACK_RANGE) {
+                    // Evitamos spamear la animación
+                    if (!enemy.isAttacking) {
+                        enemy.isAttacking = true;
+
+                        // El gato mira hacia el jugador
+                        enemy.setFlipX(this.player.x < enemy.x);
+
+                        // Reproducir animación de ataque
+                        enemy.play('evilCat-attack', true);
+
+                        // Opcional: aplicar golpe al jugador
+                        if (typeof this.hitGhost === 'function') {
+                            this.hitGhost();
+                        }
+
+                        // Cuando termine la animación, volver a flotar
+                        enemy.once(
+                            Phaser.Animations.Events.ANIMATION_COMPLETE,
+                            () => {
+                                enemy.isAttacking = false;
+                                enemy.play('evilCat-float', true);
+                            }
+                        );
+                    }
+                }
+            });
+        }
+
         // salida de la casa
         if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
             const dist = Phaser.Math.Distance.Between(
@@ -109,7 +263,6 @@ export default class GameScene extends Phaser.Scene {
             }
         }
     }
-    
 
     collectKey = (_, key) => {
         key.destroy();
@@ -136,4 +289,28 @@ export default class GameScene extends Phaser.Scene {
             this.msg.setText('¡Ganaste! Abriste la ventana del ático 🎉');
         }
     };
+
+    hitEctoplasm = (player, trap) => {
+        // Si está en el aire (saltando / cayendo), no recibe daño
+        if (!player.isOnFloor) {
+            return;
+        }
+
+        // Pequeño cooldown para que no te golpee cada frame
+        if (this.ectoplasmHurt) return;
+        this.ectoplasmHurt = true;
+
+        // Empujón hacia atrás y arriba
+        const dir = Math.sign(player.body.velocity.x || 1);
+        player.setVelocity(-150 * dir, -220);
+
+        this.cameras.main.shake(120, 0.004);
+        this.msg.setText('¡Auch! El ectoplasma te quemó las patitas 💥');
+
+        this.time.delayedCall(900, () => {
+            this.msg.setText('');
+            this.ectoplasmHurt = false;
+        });
+    };
+
 }
