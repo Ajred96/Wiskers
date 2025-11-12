@@ -11,6 +11,8 @@ export default class BootScene extends Phaser.Scene {
 
         // Imagen estática (quieto)
         this.load.image('gatoIdle', '/assets/player/gatoBueno.png');
+        //gato agachado
+        this.load.image('gatoCrouch', '/assets/player/gatoAgachado.png');
 
         // Cargar cada frame del gato caminando exportado desde Unity
         for (let i = 0; i < 20; i++) { // Ajusta 20 al número real de frames exportados

@@ -39,7 +39,7 @@ export function updateLadders(scene, cursors) {
         }
     }
 
-    // Escalera más cercana
+    // Escalera más cercana 
     const nearbyLadder = scene.ladders.getChildren().find(l => {
         const dx = Math.abs(l.x - player.x);
         const dy = Math.abs(l.y - player.y);

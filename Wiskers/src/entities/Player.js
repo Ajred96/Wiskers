@@ -12,25 +12,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.speed = 200;
         this.jumpVel = -360;
+        this.isCrouching = false;
 
-        // === Escalado base según la animación caminando ===
-        // Calculamos la proporción real del gatoIdle vs gatoWalk para igualarlos visualmente
+        // === Escalado base ===
         const walkFrame = scene.textures.get('gatoWalk_0').getSourceImage();
         const idleImg = scene.textures.get('gatoIdle').getSourceImage();
-
-        const walkH = walkFrame.height;
-        const idleH = idleImg.height;
-
-        // Compensamos diferencia de tamaño entre los dos assets
-        const sizeRatio = (walkH / idleH);
-
-        // Escala base (ajusta si lo ves muy grande o pequeño)
+        const sizeRatio = walkFrame.height / idleImg.height;
         const BASE_SCALE = 0.2;
 
-        // Aplicamos la escala corregida al gato quieto
         this.setScale(BASE_SCALE * sizeRatio);
-
-        // Guardamos escala base para el resto de animaciones
         this.baseScale = BASE_SCALE;
         this.sizeRatio = sizeRatio;
 
@@ -39,21 +29,41 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     playIdle() {
+        if (this.isCrouching) return;
         if (this.anims.currentAnim?.key !== 'player-idle') {
             this.setTexture('gatoIdle');
-            this.setScale(this.baseScale * this.sizeRatio); // igualar tamaño con "walk"
+            this.setScale(this.baseScale * this.sizeRatio);
             this.anims.play('player-idle');
             this.refreshHitbox();
         }
     }
 
     playWalk() {
+        if (this.isCrouching) return;
         if (this.anims.currentAnim?.key !== 'player-walk') {
             this.setTexture('gatoWalk_0');
-            this.setScale(this.baseScale); // tamaño original de los frames caminando
+            this.setScale(this.baseScale);
             this.anims.play('player-walk', true);
             this.refreshHitbox();
         }
+    }
+
+    playCrouch() {
+        if (this.anims.currentAnim?.key === 'player-crouch') return;
+
+        this.isCrouching = true;
+        this.setTexture('gatoCrouch'); 
+        this.setScale(this.baseScale * this.sizeRatio * 0.6 ); // más pequeño visualmente
+        //this.anims.play('player-crouch'); // define esta a nimación en tu escena
+        this.body.setSize(this.width * 0.4, this.height * 0.4); // hitbox más baja
+        this.body.setOffset(this.width * 0.3, this.height * 0.6);
+    }
+
+    stopCrouch() {
+        if (!this.isCrouching) return;
+        this.isCrouching = false;
+        this.playIdle();
+        this.refreshHitbox();
     }
 
     refreshHitbox() {
@@ -66,8 +76,18 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
 
-        const {left, right, space} = this.cursors;
+        const { left, right, down, space } = this.cursors;
 
+        // ↓ Agacharse
+        if (down.isDown) {
+            this.setVelocityX(0);
+            this.playCrouch();
+            return; // no moverse mientras está agachado
+        } else {
+            this.stopCrouch();
+        }
+
+        // ← / → movimiento
         if (left.isDown) {
             this.setVelocityX(-this.speed);
             this.setFlipX(true);
@@ -84,9 +104,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         const onFloor = this.body.blocked.down;
         this.isOnFloor = onFloor;
 
+        // Espacio para saltar
         if (onFloor && Phaser.Input.Keyboard.JustDown(space)) {
             this.setVelocityY(this.jumpVel);
         }
-
     }
 }
