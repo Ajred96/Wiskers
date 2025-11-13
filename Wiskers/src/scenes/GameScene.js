@@ -32,6 +32,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Inicializar collider dinámico como null
         this.activeCollider = null;
+        this.lastValidFloor = null; // 🔑 NUEVO: Guardar último piso válido
 
         // Jugador
         const startRoom = this.rooms[0];
@@ -45,7 +46,7 @@ export default class GameScene extends Phaser.Scene {
             trap.setDepth(5);
         });
 
-        // 👻 Trampas de ectoplasma
+        // 💻 Trampas de ectoplasma
         this.ectoplasmGroup = this.physics.add.staticGroup();
         this.ectoplasmGroup.children.iterate(trap => {
             trap.setDepth(5);
@@ -106,7 +107,6 @@ export default class GameScene extends Phaser.Scene {
             const key = this.keysGroup.create(p.x, p.y, 'key');
 
             key.setScale(0.1);      // para una imagen grande como la que pasaste
-            key.setOrigin(0.5, 1);  // que “apoye” en el piso
 
             // Opcional: ajustar hitbox según la escala
             if (key.body) {
@@ -184,49 +184,77 @@ export default class GameScene extends Phaser.Scene {
 
     update() {
         const cursors = this.input.keyboard.createCursorKeys();
-        const up = cursors.up.isDown;
-        const down = cursors.down.isDown;
         const player = this.player;
 
-        // === Collider dinámico con pisos ===
-        // Usar el bottom del player para detectar el piso (más preciso que player.y)
+        // === 🔧 COLLIDER DINÁMICO MEJORADO ===
         const playerBottom = player.getBottomCenter().y;
         
-        // Piso más cercano - usar bottom del player y aumentar rango
-        const closestFloor = this.platforms.find(f => {
+        // 🎯 Encontrar piso más cercano con lógica mejorada
+        let closestFloor = null;
+        let minDistance = Infinity;
+
+        this.platforms.forEach(f => {
             const floorY = f.y;
-            const distance = floorY - playerBottom;
-            return distance >= -50 && distance < 150; // Rango amplio: desde 50px arriba hasta 150px abajo
+            const distance = Math.abs(floorY - playerBottom);
+            
+            // Solo considerar pisos que están debajo o muy cerca del jugador
+            const isBelow = floorY >= playerBottom - 20;
+            const isClose = distance < 100;
+            
+            if (isBelow && isClose && distance < minDistance) {
+                minDistance = distance;
+                closestFloor = f;
+            }
         });
 
-        // Si el player está agachado y ya tiene un collider válido, no lo cambies
-        // Esto previene que se caiga al piso anterior cuando se agacha
-        if (player.isCrouching && this.activeCollider && this.activeCollider.active) {
-            // Verificar que el collider actual sigue siendo válido
-            const currentFloor = this.activeCollider.object2;
-            if (currentFloor && currentFloor.active) {
-                const currentDistance = currentFloor.y - playerBottom;
-                // Si el piso actual sigue siendo válido (dentro de 200px), mantenerlo
-                if (currentDistance >= -50 && currentDistance < 200) {
-                    // No cambiar el collider, mantener el actual
-                } else {
-                    // El piso actual ya no es válido, buscar uno nuevo
-                    if (closestFloor) {
-                        this.activeCollider.destroy();
-                        this.activeCollider = this.physics.add.collider(player, closestFloor);
+        // 🔒 PROTECCIÓN ESPECIAL AL AGACHARSE
+        if (player.isCrouching) {
+            // Si ya tenemos un collider válido, NO lo cambiamos durante el agachado
+            if (this.activeCollider && this.activeCollider.active) {
+                const currentFloor = this.lastValidFloor;
+                
+                if (currentFloor && currentFloor.active) {
+                    const currentDistance = currentFloor.y - playerBottom;
+                    
+                    // Mantener el collider actual si el piso sigue siendo válido
+                    // Rango más permisivo para evitar cambios durante el agachado
+                    if (currentDistance >= -30 && currentDistance < 150) {
+                        // No hacer nada, mantener el collider actual
+                        // Importante: usar 'return' aquí causaría problemas con updateLadders
+                        // En su lugar, simplemente no actualizamos el collider
+                    } else {
+                        // El piso actual ya no es válido, buscar uno nuevo
+                        if (closestFloor) {
+                            this.activeCollider.destroy();
+                            this.activeCollider = this.physics.add.collider(player, closestFloor);
+                            this.lastValidFloor = closestFloor;
+                        }
                     }
+                }
+            } else {
+                // No hay collider activo, crear uno nuevo si encontramos piso
+                if (closestFloor) {
+                    this.activeCollider = this.physics.add.collider(player, closestFloor);
+                    this.lastValidFloor = closestFloor;
                 }
             }
         } else {
-            // Collider dinámico normal (cuando no está agachado o no hay collider)
-            if ((!this.activeCollider && closestFloor) ||
-                (this.activeCollider && this.activeCollider.object2 !== closestFloor)) {
-                if (this.activeCollider) this.activeCollider.destroy();
-                if (closestFloor) {
-                    this.activeCollider = this.physics.add.collider(player, closestFloor);
-                } else {
-                    this.activeCollider = null;
+            // 🔄 Collider dinámico normal (cuando no está agachado)
+            const shouldUpdateCollider = (
+                !this.activeCollider || 
+                !this.activeCollider.active ||
+                (closestFloor && this.lastValidFloor !== closestFloor)
+            );
+
+            if (shouldUpdateCollider && closestFloor) {
+                // Destruir collider anterior
+                if (this.activeCollider) {
+                    this.activeCollider.destroy();
                 }
+                
+                // Crear nuevo collider
+                this.activeCollider = this.physics.add.collider(player, closestFloor);
+                this.lastValidFloor = closestFloor;
             }
         }
 
@@ -243,6 +271,16 @@ export default class GameScene extends Phaser.Scene {
 
         // Estilo del borde (rojo semi transparente)
         this.debugGraphics.lineStyle(2, 0xff0000, 0.5);
+
+        // 🔳 Hitbox del jugador
+        if (player.body) {
+            const b = player.body;
+            this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
+            
+            // Dibujar punto de los pies (verde)
+            this.debugGraphics.fillStyle(0x00ff00, 1);
+            this.debugGraphics.fillCircle(player.getBottomCenter().x, playerBottom, 4);
+        }
 
         // 🔳 Colliders del ectoplasma
         if (this.ectoplasmGroup) {
