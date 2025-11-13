@@ -30,6 +30,9 @@ export default class GameScene extends Phaser.Scene {
         this.rooms = rooms;
         this.platforms = platforms;
 
+        // Inicializar collider dinámico como null
+        this.activeCollider = null;
+
         // Jugador
         const startRoom = this.rooms[0];
         const startY = startRoom.solidFloor.y - 50;
@@ -184,6 +187,48 @@ export default class GameScene extends Phaser.Scene {
         const up = cursors.up.isDown;
         const down = cursors.down.isDown;
         const player = this.player;
+
+        // === Collider dinámico con pisos ===
+        // Usar el bottom del player para detectar el piso (más preciso que player.y)
+        const playerBottom = player.getBottomCenter().y;
+        
+        // Piso más cercano - usar bottom del player y aumentar rango
+        const closestFloor = this.platforms.find(f => {
+            const floorY = f.y;
+            const distance = floorY - playerBottom;
+            return distance >= -50 && distance < 150; // Rango amplio: desde 50px arriba hasta 150px abajo
+        });
+
+        // Si el player está agachado y ya tiene un collider válido, no lo cambies
+        // Esto previene que se caiga al piso anterior cuando se agacha
+        if (player.isCrouching && this.activeCollider && this.activeCollider.active) {
+            // Verificar que el collider actual sigue siendo válido
+            const currentFloor = this.activeCollider.object2;
+            if (currentFloor && currentFloor.active) {
+                const currentDistance = currentFloor.y - playerBottom;
+                // Si el piso actual sigue siendo válido (dentro de 200px), mantenerlo
+                if (currentDistance >= -50 && currentDistance < 200) {
+                    // No cambiar el collider, mantener el actual
+                } else {
+                    // El piso actual ya no es válido, buscar uno nuevo
+                    if (closestFloor) {
+                        this.activeCollider.destroy();
+                        this.activeCollider = this.physics.add.collider(player, closestFloor);
+                    }
+                }
+            }
+        } else {
+            // Collider dinámico normal (cuando no está agachado o no hay collider)
+            if ((!this.activeCollider && closestFloor) ||
+                (this.activeCollider && this.activeCollider.object2 !== closestFloor)) {
+                if (this.activeCollider) this.activeCollider.destroy();
+                if (closestFloor) {
+                    this.activeCollider = this.physics.add.collider(player, closestFloor);
+                } else {
+                    this.activeCollider = null;
+                }
+            }
+        }
 
         // Resetear bandera de escalera
         updateLadders(this, cursors);
