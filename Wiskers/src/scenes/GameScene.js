@@ -31,7 +31,8 @@ export default class GameScene extends Phaser.Scene {
         this.platforms = platforms;
 
         // Jugador
-        const startY = this.rooms[this.rooms.length - 1].solidFloor.y + worldHeight;
+        const startRoom = this.rooms[0];
+        const startY = startRoom.solidFloor.y - 50;
         this.player = new Player(this, 80, startY);
         this.player.setDepth(10);
 
