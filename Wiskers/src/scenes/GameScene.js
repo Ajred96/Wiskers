@@ -5,6 +5,7 @@ import {createFloors} from '../systems/floorManager.js';
 import {createLadders, updateLadders} from '../systems/laddersManager.js';
 import { createWindow } from '../objects/WindowPrefab.js';
 import { createDesk } from '../objects/DeskPrefab.js';
+import { createEctoplasm } from '../objects/EctoplasmPrefab.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -49,37 +50,8 @@ export default class GameScene extends Phaser.Scene {
             trap.setDepth(5);
         });
 
-        // 💻 Trampas de ectoplasma
-        this.ectoplasmGroup = this.physics.add.staticGroup();
-        this.ectoplasmGroup.children.iterate(trap => {
-            trap.setDepth(5);
-        });
-
-        [
-            {x: 600, y: this.rooms[1].solidFloor.y},
-            {x: 1050, y: this.rooms[2].solidFloor.y},
-            {x: 800, y: this.rooms[3].solidFloor.y}
-        ].forEach(p => {
-            const trap = this.ectoplasmGroup.create(p.x, p.y, 'ectoplasm');
-
-            trap.setOrigin(0.5, 1);  // apoyado en el piso
-            trap.setScale(0.2);      // ajusta según lo grande que sea tu PNG
-
-            // Actualizar el cuerpo al nuevo tamaño/posición
-            trap.refreshBody();
-
-            // ⚠️ Reducir el hitbox para que no pegue desde tan lejos
-            const w = trap.width;
-            const h = trap.height;
-
-            // Caja más pequeña (solo la parte central)
-            trap.body.setSize(w * 0.15, h * 0.2, true); // ancho 60%, alto 40%
-            // Opcional: bajar un poco la caja, para que sea más "al ras del piso"
-            trap.body.offset.y += h * 0.3;
-        });
-
         const floorY = this.rooms[1].solidFloor.y;
-        
+
         //PREFACTS
         // Ventana (prefab)
         this.windows = [
@@ -112,6 +84,19 @@ export default class GameScene extends Phaser.Scene {
                 key.body.setSize(key.width, key.height, true);
             }
         });
+        
+        //ectoplasma
+        this.ectoplasmGroup = this.physics.add.staticGroup();
+        [
+            {x: 600, floor: this.rooms[1].solidFloor.y},
+            {x: 1050, floor: this.rooms[2].solidFloor.y},
+            {x: 800, floor: this.rooms[3].solidFloor.y}
+        ].forEach(({x, floor}) => {
+            const trap = createEctoplasm(this, x, floor);
+            this.ectoplasmGroup.add(trap);
+        });
+        this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
+
 
         // tween flotante
         this.keysGroup.children.iterate(key => {
@@ -140,7 +125,7 @@ export default class GameScene extends Phaser.Scene {
         // Overlaps
         // this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
         this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
-        this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
+        //this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
         if (this.ghost) this.physics.add.overlap(this.player, this.ghost, this.hitGhost, null, this);
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
 
