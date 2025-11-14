@@ -5,38 +5,46 @@ export default class MultiFloorScene extends Phaser.Scene {
     constructor() {
         super('MultiFloorScene');
     }
-
+    
     preload() {
         
     }
-
+    
     create() {
         const width = this.scale.width;
         const height = this.scale.height;
+        
         this.physics.world.setBounds(0, 0, width, height/2);
         // Fondo simple
         this.add.rectangle(width / 2, height / 2, width, height, 0x1d1f2a);
-
+        
         // Crear jugador
         this.player = new Player(this, width / 2, height - 100);
         this.physics.add.existing(this.player);
         this.player.setCollideWorldBounds(true);
-
+        
         // Cámara sigue al jugador
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
         this.cameras.main.setBounds(0, 0, width, height);
-
+        
         // Controles
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.keyESC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-
+        
         // Texto de volver
-        this.add.text(width / 2, 30, 'Presiona E o ESC para volver', {
+        this.msg = this.add.text(width / 2, 30, '', {
             fontFamily: 'Arial',
             fontSize: 20,
             color: '#ffffff'
-        }).setOrigin(0.5, 0);
+        }).setOrigin(0.5, 0.5);
+
+        this.msg.setText('¡Ganaste! Abriste la ventana del ático 🎉');
+        
+        this.time.delayedCall(2000, () => {
+            this.msg.setText('Presiona E o ESC para volver');
+});
+
     }
 
     update() {
