@@ -3,6 +3,7 @@ import Player from '../entities/Player.js';
 import {preloadEnemies, createEnemies} from '../enemies/index.js';
 import {createFloors} from '../systems/floorManager.js';
 import {createLadders, updateLadders} from '../systems/laddersManager.js';
+import { createWindow } from '../objects/WindowPrefab.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -19,6 +20,7 @@ export default class GameScene extends Phaser.Scene {
         this.load.image('key', '/assets/others/llave.png');
         this.load.image('ectoplasm', '/assets/others/ectoplasma.png');
         this.load.image('desk', '/assets/others/escritorio.png');
+        this.load.image('window', '/assets/others/ventana.png');
     }
 
     create() {
@@ -96,6 +98,21 @@ export default class GameScene extends Phaser.Scene {
         this.desk.body.setOffset(bw * 0.1, bh * 0.25);
 
         this.desk.setDepth(2);
+
+        //PREFACTS
+        // Ventana (prefab)
+        this.windows = [
+            createWindow(this, 100, this.rooms[1].solidFloor.y),
+            createWindow(this, 550, this.rooms[2].solidFloor.y),
+            createWindow(this, 290, this.rooms[3].solidFloor.y)
+        ];
+
+        this.windows.forEach(w => {
+            this.physics.add.collider(this.player, w);
+        });
+
+
+        
 
         // Llaves
         this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
