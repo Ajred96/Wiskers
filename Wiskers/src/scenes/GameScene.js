@@ -316,18 +316,6 @@ export default class GameScene extends Phaser.Scene {
             });
         }
 
-        // salida de la casa
-        if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
-            const dist = Phaser.Math.Distance.Between(
-                player.x,
-                player.y,
-                this.door.x,
-                this.door.y
-            );
-            if (dist < 100) {
-                this.scene.start('MultiFloorScene');
-            }
-        }
     }
 
     collectKey = (_, key) => {
@@ -337,7 +325,7 @@ export default class GameScene extends Phaser.Scene {
         if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
             this.doorOpen = true;
             this.msg.setText('¡La ventana del ático está abierta!');
-            this.door.disableBody(true, true);
+            //this.door.disableBody(true, true);
             this.time.delayedCall(1200, () => this.msg.setText(''));
         }
     };
@@ -351,8 +339,19 @@ export default class GameScene extends Phaser.Scene {
 
     tryFinish = () => {
         if (this.doorOpen) {
-            this.scene.pause();
-            this.msg.setText('¡Ganaste! Abriste la ventana del ático 🎉');
+            //this.scene.pause();
+            // salida de la casa
+            if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+                const dist = Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    this.door.x,
+                    this.door.y
+                );
+                if (dist < 100) {
+                    this.scene.start('MultiFloorScene');
+                }
+            }
         }
     };
 
