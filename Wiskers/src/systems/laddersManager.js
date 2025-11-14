@@ -25,20 +25,6 @@ export function updateLadders(scene, cursors) {
     scene.onLadder = false;
     scene.physics.overlap(player, scene.ladders, () => { scene.onLadder = true; });
 
-    // Piso más cercano
-    const closestFloor = scene.platforms.find(f => f.y >= player.y && (f.y - player.y) < 120);
-
-    // Collider dinámico
-    if ((!scene.activeCollider && closestFloor) ||
-        (scene.activeCollider && scene.activeCollider.object2 !== closestFloor)) {
-        if (scene.activeCollider) scene.activeCollider.destroy();
-        if (closestFloor) {
-            scene.activeCollider = scene.physics.add.collider(player, closestFloor);
-        } else {
-            scene.activeCollider = null;
-        }
-    }
-
     // Escalera más cercana 
     const nearbyLadder = scene.ladders.getChildren().find(l => {
         const dx = Math.abs(l.x - player.x);

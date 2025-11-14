@@ -13,6 +13,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.speed = 200;
         this.jumpVel = -360;
         this.isCrouching = false;
+        this.crouchStartFeetY = null; // Guardar posición de pies al empezar a agacharse
 
         // === Escalado base ===
         const walkFrame = scene.textures.get('gatoWalk_0').getSourceImage();
@@ -63,12 +64,32 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.isCrouching = true;
 
         const feetY = this.getBottomCenter().y;
+        // Guardar la posición original de los pies para restaurarla al levantarse
+        this.crouchStartFeetY = feetY;
+
+        // 🐛 DEBUG: Guarda posición antes
+        console.log('🔽 ANTES DE AGACHARSE:');
+        console.log('  - Posición Y:', this.y);
+        console.log('  - Pies Y:', feetY);
+        console.log('  - Display Height:', this.displayHeight);
+        console.log('  - Hitbox Height:', this.body?.height);
 
         this._withPhysicsLock(() => {
             this.setTexture('gatoCrouch');
             this._applyCrouchScale();
+            // Actualizar el body después de cambiar la escala para que getBottomCenter sea preciso
+            if (this.body) this.body.updateFromGameObject();
             this._setBottom(feetY);
             this.refreshHitbox();
+        });
+        // 🐛 DEBUG: Verifica posición después (en el siguiente frame)
+        this.scene.time.delayedCall(50, () => {
+            console.log('🔽 DESPUÉS DE AGACHARSE:');
+            console.log('  - Posición Y:', this.y);
+            console.log('  - Pies Y:', this.getBottomCenter().y);
+            console.log('  - Display Height:', this.displayHeight);
+            console.log('  - Hitbox Height:', this.body?.height);
+            console.log('  - ¿Tocando suelo?:', this.body?.blocked.down);
         });
     }
 
@@ -76,15 +97,35 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         if (!this.isCrouching) return;
         this.isCrouching = false;
 
-        const feetY = this.getBottomCenter().y;
+        // Usar la posición original de los pies guardada al agacharse
+        // en lugar de la posición actual (que puede estar incorrecta)
+        const targetFeetY = this.crouchStartFeetY !== null ? this.crouchStartFeetY : this.getBottomCenter().y;
+        const currentFeetY = this.getBottomCenter().y;
 
+        console.log('🔼 ANTES DE LEVANTARSE:');
+        console.log('  - Posición Y:', this.y);
+        console.log('  - Pies Y actual:', currentFeetY);
+        console.log('  - Pies Y objetivo:', targetFeetY);
+        
         this._withPhysicsLock(() => {
             // Aplica frame/anim primero y escala inmediatamente (sin esperar a UPDATE)
             this.setTexture('gatoIdle');
             this.anims.play('player-idle');
             this._applyStandScale();
-            this._setBottom(feetY);
+            // Actualizar el body después de cambiar la escala para que getBottomCenter sea preciso
+            if (this.body) this.body.updateFromGameObject();
+            // Restaurar la posición original de los pies
+            this._setBottom(targetFeetY);
             this.refreshHitbox();
+        });
+        
+        // Limpiar la posición guardada
+        this.crouchStartFeetY = null;
+        this.scene.time.delayedCall(50, () => {
+            console.log('🔼 DESPUÉS DE LEVANTARSE:');
+            console.log('  - Posición Y:', this.y);
+            console.log('  - Pies Y:', this.getBottomCenter().y);
+            console.log('  - ¿Tocando suelo?:', this.body?.blocked.down);
         });
     }
 
@@ -125,6 +166,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         // Si está agachado, no mover ni saltar
         if (this.isCrouching) {
             this.setVelocityX(0);
+            this.setVelocityY(0); // También congelar movimiento vertical
+            // Mantener la posición de los pies en la posición guardada
+            if (this.crouchStartFeetY !== null) {
+                const currentFeetY = this.getBottomCenter().y;
+                // Si los pies se han movido, corregirlos
+                if (Math.abs(currentFeetY - this.crouchStartFeetY) > 1) {
+                    this._setBottom(this.crouchStartFeetY);
+                }
+            }
             return;
         }
 
@@ -164,10 +214,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     _setBottom(feetY) {
-        const bottomOffset = this.displayHeight * (1 - this.originY);
-        this.setY(Math.round(feetY - bottomOffset)); // redondea
-        // No hace falta llamar siempre updateFromGameObject aquí
-        // se hará dentro de refreshHitbox cuando cambie realmente
+        // Usar getBottomCenter para calcular correctamente el offset
+        // Esto es más preciso que calcular manualmente con displayHeight
+        const currentBottom = this.getBottomCenter().y;
+        const offset = feetY - currentBottom;
+        this.setY(this.y + offset);
+        // Asegurar que el body se actualice inmediatamente
+        if (this.body) {
+            this.body.updateFromGameObject();
+        }
     }
 
     // Congela caída 1 frame mientras cambiamos textura/escala/hitbox

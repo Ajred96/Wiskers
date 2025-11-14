@@ -3,6 +3,9 @@ import Player from '../entities/Player.js';
 import {preloadEnemies, createEnemies} from '../enemies/index.js';
 import {createFloors} from '../systems/floorManager.js';
 import {createLadders, updateLadders} from '../systems/laddersManager.js';
+import { createWindow } from '../objects/WindowPrefab.js';
+import { createDesk } from '../objects/DeskPrefab.js';
+import { createEctoplasm } from '../objects/EctoplasmPrefab.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -19,6 +22,7 @@ export default class GameScene extends Phaser.Scene {
         this.load.image('key', '/assets/others/llave.png');
         this.load.image('ectoplasm', '/assets/others/ectoplasma.png');
         this.load.image('desk', '/assets/others/escritorio.png');
+        this.load.image('window', '/assets/others/ventana.png');
     }
 
     create() {
@@ -30,8 +34,13 @@ export default class GameScene extends Phaser.Scene {
         this.rooms = rooms;
         this.platforms = platforms;
 
+        // Inicializar collider dinámico como null
+        this.activeCollider = null;
+        this.lastValidFloor = null; // 🔑 NUEVO: Guardar último piso válido
+
         // Jugador
-        const startY = this.rooms[this.rooms.length - 1].solidFloor.y + worldHeight;
+        const startRoom = this.rooms[0];
+        const startY = startRoom.solidFloor.y - 50;
         this.player = new Player(this, 80, startY);
         this.player.setDepth(10);
 
@@ -41,56 +50,23 @@ export default class GameScene extends Phaser.Scene {
             trap.setDepth(5);
         });
 
-        // 👻 Trampas de ectoplasma
-        this.ectoplasmGroup = this.physics.add.staticGroup();
-        this.ectoplasmGroup.children.iterate(trap => {
-            trap.setDepth(5);
-        });
-
-        [
-            {x: 600, y: this.rooms[1].solidFloor.y},
-            {x: 1050, y: this.rooms[2].solidFloor.y},
-            {x: 800, y: this.rooms[3].solidFloor.y}
-        ].forEach(p => {
-            const trap = this.ectoplasmGroup.create(p.x, p.y, 'ectoplasm');
-
-            trap.setOrigin(0.5, 1);  // apoyado en el piso
-            trap.setScale(0.2);      // ajusta según lo grande que sea tu PNG
-
-            // Actualizar el cuerpo al nuevo tamaño/posición
-            trap.refreshBody();
-
-            // ⚠️ Reducir el hitbox para que no pegue desde tan lejos
-            const w = trap.width;
-            const h = trap.height;
-
-            // Caja más pequeña (solo la parte central)
-            trap.body.setSize(w * 0.15, h * 0.2, true); // ancho 60%, alto 40%
-            // Opcional: bajar un poco la caja, para que sea más "al ras del piso"
-            trap.body.offset.y += h * 0.3;
-        });
-
         const floorY = this.rooms[1].solidFloor.y;
 
-        // 🪑 Escritorio
-        this.desk = this.physics.add.staticSprite(1000, floorY, 'desk');
-        this.desk.setOrigin(0.5, 1);   // origen abajo en las patas
-        this.desk.setScale(0.15);      // tamaño visual
+        //PREFACTS
+        // Ventana (prefab)
+        this.windows = [
+            createWindow(this, 100, this.rooms[1].solidFloor.y),
+            createWindow(this, 550, this.rooms[2].solidFloor.y),
+            createWindow(this, 290, this.rooms[3].solidFloor.y)
+        ];
 
-        // Actualizar el cuerpo después de origen/escala
-        this.desk.refreshBody();
+        this.windows.forEach(w => {
+            this.physics.add.collider(this.player, w);
+        });
 
-        // Usar el tamaño REAL del cuerpo (ya escalado)
-        const bw = this.desk.body.width;
-        const bh = this.desk.body.height;
-
-        // Collider: franja en la parte superior, un poco hacia dentro
-        this.desk.body.setSize(bw * 0.8, bh * 0.25);   // ancho 80%, alto 25%
-
-        // Centrado horizontal y pegado a la parte superior
-        this.desk.body.setOffset(bw * 0.1, bh * 0.25);
-
-        this.desk.setDepth(2);
+        //Escritorio
+        this.desk = createDesk(this, 1000, floorY);
+        this.physics.add.collider(this.player, this.desk);
 
         // Llaves
         this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
@@ -102,13 +78,25 @@ export default class GameScene extends Phaser.Scene {
             const key = this.keysGroup.create(p.x, p.y, 'key');
 
             key.setScale(0.1);      // para una imagen grande como la que pasaste
-            key.setOrigin(0.5, 1);  // que “apoye” en el piso
 
             // Opcional: ajustar hitbox según la escala
             if (key.body) {
                 key.body.setSize(key.width, key.height, true);
             }
         });
+        
+        //ectoplasma
+        this.ectoplasmGroup = this.physics.add.staticGroup();
+        [
+            {x: 600, floor: this.rooms[1].solidFloor.y},
+            {x: 1050, floor: this.rooms[2].solidFloor.y},
+            {x: 800, floor: this.rooms[3].solidFloor.y}
+        ].forEach(({x, floor}) => {
+            const trap = createEctoplasm(this, x, floor);
+            this.ectoplasmGroup.add(trap);
+        });
+        this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
+
 
         // tween flotante
         this.keysGroup.children.iterate(key => {
@@ -134,12 +122,10 @@ export default class GameScene extends Phaser.Scene {
             });
         });
 
-        this.physics.add.collider(this.player, this.desk);
-
         // Overlaps
         // this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
         this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
-        this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
+        //this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
         if (this.ghost) this.physics.add.overlap(this.player, this.ghost, this.hitGhost, null, this);
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
 
@@ -180,9 +166,79 @@ export default class GameScene extends Phaser.Scene {
 
     update() {
         const cursors = this.input.keyboard.createCursorKeys();
-        const up = cursors.up.isDown;
-        const down = cursors.down.isDown;
         const player = this.player;
+
+        // === 🔧 COLLIDER DINÁMICO MEJORADO ===
+        const playerBottom = player.getBottomCenter().y;
+        
+        // 🎯 Encontrar piso más cercano con lógica mejorada
+        let closestFloor = null;
+        let minDistance = Infinity;
+
+        this.platforms.forEach(f => {
+            const floorY = f.y;
+            const distance = Math.abs(floorY - playerBottom);
+            
+            // Solo considerar pisos que están debajo o muy cerca del jugador
+            const isBelow = floorY >= playerBottom - 20;
+            const isClose = distance < 100;
+            
+            if (isBelow && isClose && distance < minDistance) {
+                minDistance = distance;
+                closestFloor = f;
+            }
+        });
+
+        // 🔒 PROTECCIÓN ESPECIAL AL AGACHARSE
+        if (player.isCrouching) {
+            // Si ya tenemos un collider válido, NO lo cambiamos durante el agachado
+            if (this.activeCollider && this.activeCollider.active) {
+                const currentFloor = this.lastValidFloor;
+                
+                if (currentFloor && currentFloor.active) {
+                    const currentDistance = currentFloor.y - playerBottom;
+                    
+                    // Mantener el collider actual si el piso sigue siendo válido
+                    // Rango más permisivo para evitar cambios durante el agachado
+                    if (currentDistance >= -30 && currentDistance < 150) {
+                        // No hacer nada, mantener el collider actual
+                        // Importante: usar 'return' aquí causaría problemas con updateLadders
+                        // En su lugar, simplemente no actualizamos el collider
+                    } else {
+                        // El piso actual ya no es válido, buscar uno nuevo
+                        if (closestFloor) {
+                            this.activeCollider.destroy();
+                            this.activeCollider = this.physics.add.collider(player, closestFloor);
+                            this.lastValidFloor = closestFloor;
+                        }
+                    }
+                }
+            } else {
+                // No hay collider activo, crear uno nuevo si encontramos piso
+                if (closestFloor) {
+                    this.activeCollider = this.physics.add.collider(player, closestFloor);
+                    this.lastValidFloor = closestFloor;
+                }
+            }
+        } else {
+            // 🔄 Collider dinámico normal (cuando no está agachado)
+            const shouldUpdateCollider = (
+                !this.activeCollider || 
+                !this.activeCollider.active ||
+                (closestFloor && this.lastValidFloor !== closestFloor)
+            );
+
+            if (shouldUpdateCollider && closestFloor) {
+                // Destruir collider anterior
+                if (this.activeCollider) {
+                    this.activeCollider.destroy();
+                }
+                
+                // Crear nuevo collider
+                this.activeCollider = this.physics.add.collider(player, closestFloor);
+                this.lastValidFloor = closestFloor;
+            }
+        }
 
         // Resetear bandera de escalera
         updateLadders(this, cursors);
@@ -197,6 +253,16 @@ export default class GameScene extends Phaser.Scene {
 
         // Estilo del borde (rojo semi transparente)
         this.debugGraphics.lineStyle(2, 0xff0000, 0.5);
+
+        // 🔳 Hitbox del jugador
+        if (player.body) {
+            const b = player.body;
+            this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
+            
+            // Dibujar punto de los pies (verde)
+            this.debugGraphics.fillStyle(0x00ff00, 1);
+            this.debugGraphics.fillCircle(player.getBottomCenter().x, playerBottom, 4);
+        }
 
         // 🔳 Colliders del ectoplasma
         if (this.ectoplasmGroup) {
