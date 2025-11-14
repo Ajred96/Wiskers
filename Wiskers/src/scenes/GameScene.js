@@ -4,6 +4,7 @@ import {preloadEnemies, createEnemies} from '../enemies/index.js';
 import {createFloors} from '../systems/floorManager.js';
 import {createLadders, updateLadders} from '../systems/laddersManager.js';
 import { createWindow } from '../objects/WindowPrefab.js';
+import { createDesk } from '../objects/DeskPrefab.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -78,27 +79,7 @@ export default class GameScene extends Phaser.Scene {
         });
 
         const floorY = this.rooms[1].solidFloor.y;
-
-        // 🪑 Escritorio
-        this.desk = this.physics.add.staticSprite(1000, floorY, 'desk');
-        this.desk.setOrigin(0.5, 1);   // origen abajo en las patas
-        this.desk.setScale(0.15);      // tamaño visual
-
-        // Actualizar el cuerpo después de origen/escala
-        this.desk.refreshBody();
-
-        // Usar el tamaño REAL del cuerpo (ya escalado)
-        const bw = this.desk.body.width;
-        const bh = this.desk.body.height;
-
-        // Collider: franja en la parte superior, un poco hacia dentro
-        this.desk.body.setSize(bw * 0.8, bh * 0.25);   // ancho 80%, alto 25%
-
-        // Centrado horizontal y pegado a la parte superior
-        this.desk.body.setOffset(bw * 0.1, bh * 0.25);
-
-        this.desk.setDepth(2);
-
+        
         //PREFACTS
         // Ventana (prefab)
         this.windows = [
@@ -111,8 +92,9 @@ export default class GameScene extends Phaser.Scene {
             this.physics.add.collider(this.player, w);
         });
 
-
-        
+        //Escritorio
+        this.desk = createDesk(this, 1000, floorY);
+        this.physics.add.collider(this.player, this.desk);
 
         // Llaves
         this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
@@ -154,8 +136,6 @@ export default class GameScene extends Phaser.Scene {
                 this.physics.add.collider(enemy, floor);
             });
         });
-
-        this.physics.add.collider(this.player, this.desk);
 
         // Overlaps
         // this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
