@@ -23,12 +23,16 @@ export default class GameScene extends Phaser.Scene {
         this.load.image('ectoplasm', '/assets/others/ectoplasma.png');
         this.load.image('desk', '/assets/others/escritorio.png');
         this.load.image('window', '/assets/others/ventana.png');
+
+        //Sonidos
+        this.load.audio('angryCat', 'assets/sounds/angry-cat.mp3');
+
     }
 
     create() {
         const width = this.scale.width;
         const height = this.scale.height;
-
+        this.catHurtSound = this.sound.add('angryCat');
         // 🔹 Llamada al manager para crear pisos y fondos
         const {rooms, platforms, worldHeight, floorHeight} = createFloors(this, width, height);
         this.rooms = rooms;
@@ -371,7 +375,7 @@ export default class GameScene extends Phaser.Scene {
 
         this.cameras.main.shake(120, 0.004);
         this.msg.setText('¡Auch! El ectoplasma te quemó las patitas 💥');
-
+        this.catHurtSound.play();
         this.time.delayedCall(900, () => {
             this.msg.setText('');
             this.ectoplasmHurt = false;
