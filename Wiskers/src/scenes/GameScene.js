@@ -26,6 +26,8 @@ export default class GameScene extends Phaser.Scene {
 
         //Sonidos
         this.load.audio('angryCat', 'assets/sounds/angry-cat.mp3');
+        this.load.audio('generalSound', 'assets/sounds/spooky.mp3');
+        this.load.audio('collectedKeys', 'assets/sounds/collectkeys.mp3');
 
     }
 
@@ -33,6 +35,10 @@ export default class GameScene extends Phaser.Scene {
         const width = this.scale.width;
         const height = this.scale.height;
         this.catHurtSound = this.sound.add('angryCat');
+        this.generalSound = this.sound.add('generalSound');
+        this.collectedKeys = this.sound.add('collectedKeys');
+        
+        this.generalSound.play({loop: true, volume: 0.1});
         // 🔹 Llamada al manager para crear pisos y fondos
         const {rooms, platforms, worldHeight, floorHeight} = createFloors(this, width, height);
         this.rooms = rooms;
@@ -326,6 +332,7 @@ export default class GameScene extends Phaser.Scene {
         key.destroy();
         this.keysCollected++;
         this.ui.setText(`Llaves: ${this.keysCollected}/${this.totalKeys}`);
+        this.collectedKeys.play({loop: false, volume: 0.8});
         if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
             this.doorOpen = true;
             this.msg.setText('¡La ventana del ático está abierta!');
