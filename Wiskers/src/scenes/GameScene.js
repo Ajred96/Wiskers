@@ -155,6 +155,13 @@ export default class GameScene extends Phaser.Scene {
             color: '#ffeb3b'
         }).setOrigin(0.5, 0).setScrollFactor(0);
 
+        this.add.text(120, 12, `Vidas: ${this.player.lives}`, {
+            fontFamily: 'Arial',
+            fontSize:18,
+            color: '#ffffff'
+        }).setScrollFactor(0);
+
+
         // Escaleras
         //sthis.onLadder = false;
 
@@ -360,6 +367,7 @@ export default class GameScene extends Phaser.Scene {
                     this.door.y
                 );
                 if (dist < 100) {
+                    this.generalSound.stop();
                     this.scene.start('MultiFloorScene');
                 }
             }

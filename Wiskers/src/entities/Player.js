@@ -9,7 +9,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.setCollideWorldBounds(true);
         this.cursors = scene.input.keyboard.createCursorKeys();
-
+        this.lives = 3;
         this.speed = 200;
         this.jumpVel = -360;
         this.isCrouching = false;
