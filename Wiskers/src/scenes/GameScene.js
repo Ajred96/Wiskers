@@ -6,6 +6,7 @@ import {createLadders, updateLadders} from '../systems/laddersManager.js';
 import { createWindow } from '../objects/WindowPrefab.js';
 import { createDesk } from '../objects/DeskPrefab.js';
 import { createEctoplasm } from '../objects/EctoplasmPrefab.js';
+import { LifeManager } from '../systems/lifeManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -53,6 +54,8 @@ export default class GameScene extends Phaser.Scene {
         const startY = startRoom.solidFloor.y - 50;
         this.player = new Player(this, 80, startY);
         this.player.setDepth(10);
+        this.lifeManager = new LifeManager(this, this.player, 3);
+
 
         // Escaleras
         this.ladders = createLadders(this, rooms, floorHeight);
@@ -154,13 +157,6 @@ export default class GameScene extends Phaser.Scene {
             fontSize: 22,
             color: '#ffeb3b'
         }).setOrigin(0.5, 0).setScrollFactor(0);
-
-        this.add.text(120, 12, `Vidas: ${this.player.lives}`, {
-            fontFamily: 'Arial',
-            fontSize:18,
-            color: '#ffffff'
-        }).setScrollFactor(0);
-
 
         // Escaleras
         //sthis.onLadder = false;
@@ -391,6 +387,8 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.shake(120, 0.004);
         this.msg.setText('¡Auch! El ectoplasma te quemó las patitas 💥');
         this.catHurtSound.play();
+        this.player.lives--;
+        this.lifeManager.takeDamage(1);
         this.time.delayedCall(900, () => {
             this.msg.setText('');
             this.ectoplasmHurt = false;

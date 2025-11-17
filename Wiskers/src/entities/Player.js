@@ -128,7 +128,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             console.log('  - ¿Tocando suelo?:', this.body?.blocked.down);
         });
     }
-
+    
     refreshHitbox() {
         const body = this.body;
         if (!body) return;
