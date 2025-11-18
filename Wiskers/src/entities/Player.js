@@ -9,7 +9,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.setCollideWorldBounds(true);
         this.cursors = scene.input.keyboard.createCursorKeys();
-
+        this.lives = 3;
         this.speed = 200;
         this.jumpVel = -360;
         this.isCrouching = false;
@@ -128,7 +128,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             console.log('  - ¿Tocando suelo?:', this.body?.blocked.down);
         });
     }
-
+    
     refreshHitbox() {
         const body = this.body;
         if (!body) return;

@@ -7,13 +7,20 @@ export default class MultiFloorScene extends Phaser.Scene {
     }
     
     preload() {
+        this.load.audio('win', 'assets/sounds/win.mp3');
+        this.load.audio('cat', 'assets/sounds/cat.mp3');
         
     }
     
     create() {
         const width = this.scale.width;
         const height = this.scale.height;
-        
+        this.winSound = this.sound.add('win');
+        this.catSound = this.sound.add('cat');
+
+        this.winSound.play({loop: false, volume: 0.8});
+        this.catSound.play({loop: false, volume: 1});
+
         this.physics.world.setBounds(0, 0, width, height/2);
         // Fondo simple
         this.add.rectangle(width / 2, height / 2, width, height, 0x1d1f2a);

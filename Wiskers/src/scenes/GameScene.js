@@ -6,6 +6,7 @@ import {createLadders, updateLadders} from '../systems/laddersManager.js';
 import { createWindow } from '../objects/WindowPrefab.js';
 import { createDesk } from '../objects/DeskPrefab.js';
 import { createEctoplasm } from '../objects/EctoplasmPrefab.js';
+import { LifeManager } from '../systems/lifeManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -26,6 +27,8 @@ export default class GameScene extends Phaser.Scene {
 
         //Sonidos
         this.load.audio('angryCat', 'assets/sounds/angry-cat.mp3');
+        this.load.audio('generalSound', 'assets/sounds/spooky.mp3');
+        this.load.audio('collectedKeys', 'assets/sounds/collectkeys.mp3');
 
     }
 
@@ -33,6 +36,10 @@ export default class GameScene extends Phaser.Scene {
         const width = this.scale.width;
         const height = this.scale.height;
         this.catHurtSound = this.sound.add('angryCat');
+        this.generalSound = this.sound.add('generalSound');
+        this.collectedKeys = this.sound.add('collectedKeys');
+        
+        this.generalSound.play({loop: true, volume: 0.1});
         // 🔹 Llamada al manager para crear pisos y fondos
         const {rooms, platforms, worldHeight, floorHeight} = createFloors(this, width, height);
         this.rooms = rooms;
@@ -47,6 +54,8 @@ export default class GameScene extends Phaser.Scene {
         const startY = startRoom.solidFloor.y - 50;
         this.player = new Player(this, 80, startY);
         this.player.setDepth(10);
+        this.lifeManager = new LifeManager(this, this.player, 3);
+
 
         // Escaleras
         this.ladders = createLadders(this, rooms, floorHeight);
@@ -75,8 +84,8 @@ export default class GameScene extends Phaser.Scene {
         // Llaves
         this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
         [
-            {x: 820, y: this.rooms[0].solidFloor.y - 40},
-            {x: 300, y: this.rooms[2].solidFloor.y - 40},
+            {x: 1200, y: this.rooms[0].solidFloor.y - 40},
+            {x: 1100, y: this.rooms[2].solidFloor.y -100},
             {x: 900, y: this.rooms[3].solidFloor.y - 40}
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');
@@ -326,6 +335,7 @@ export default class GameScene extends Phaser.Scene {
         key.destroy();
         this.keysCollected++;
         this.ui.setText(`Llaves: ${this.keysCollected}/${this.totalKeys}`);
+        this.collectedKeys.play({loop: false, volume: 0.8});
         if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
             this.doorOpen = true;
             this.msg.setText('¡La ventana del ático está abierta!');
@@ -353,6 +363,7 @@ export default class GameScene extends Phaser.Scene {
                     this.door.y
                 );
                 if (dist < 100) {
+                    this.generalSound.stop();
                     this.scene.start('MultiFloorScene');
                 }
             }
@@ -376,6 +387,8 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.shake(120, 0.004);
         this.msg.setText('¡Auch! El ectoplasma te quemó las patitas 💥');
         this.catHurtSound.play();
+        this.player.lives--;
+        this.lifeManager.takeDamage(1);
         this.time.delayedCall(900, () => {
             this.msg.setText('');
             this.ectoplasmHurt = false;
