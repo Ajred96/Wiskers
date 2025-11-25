@@ -43,6 +43,22 @@ export class LifeManager {
             { fontFamily: 'Arial', fontSize: 48, color: '#ff0000' }
         ).setOrigin(0.5);
 
+         const fade = this.scene.add.rectangle(
+            this.scene.cameras.main.centerX,
+            this.scene.cameras.main.centerY,
+            this.scene.scale.width,
+            this.scene.scale.height,
+            0x000000,
+            0.3
+        ).setScrollFactor(0);
+
+        this.scene.tweens.add({
+            targets: fade,
+            alpha: 0.7,
+            duration: 3000,
+            ease: "Power2",
+        });
+
         this.scene.time.delayedCall(2000, () => {
             this.scene.scene.restart();
         });
