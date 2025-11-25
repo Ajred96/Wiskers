@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
-import {preloadEnemies, createEnemies} from '../enemies/index.js';
-import {createFloors} from '../systems/floorManager.js';
-import {createLadders, updateLadders} from '../systems/laddersManager.js';
+import { preloadEnemies, createEnemies } from '../enemies/index.js';
+import { createFloors } from '../systems/floorManager.js';
 import { createWindow } from '../objects/WindowPrefab.js';
 import { createDesk } from '../objects/DeskPrefab.js';
 import { createEctoplasm } from '../objects/EctoplasmPrefab.js';
@@ -24,12 +23,12 @@ export default class GameScene extends Phaser.Scene {
         this.load.image('ectoplasm', '/assets/others/ectoplasma.png');
         this.load.image('desk', '/assets/others/escritorio.png');
         this.load.image('window', '/assets/others/ventana.png');
+        this.load.image('door', '/assets/others/puerta.png');
 
         //Sonidos
         this.load.audio('angryCat', 'assets/sounds/angry-cat.mp3');
         this.load.audio('generalSound', 'assets/sounds/spooky.mp3');
         this.load.audio('collectedKeys', 'assets/sounds/collectkeys.mp3');
-
     }
 
     create() {
@@ -38,16 +37,17 @@ export default class GameScene extends Phaser.Scene {
         this.catHurtSound = this.sound.add('angryCat');
         this.generalSound = this.sound.add('generalSound');
         this.collectedKeys = this.sound.add('collectedKeys');
-        
+
         this.generalSound.play({loop: true, volume: 0.1});
-        // 🔹 Llamada al manager para crear pisos y fondos
+
+        // Pisos y fondos
         const {rooms, platforms, worldHeight, floorHeight} = createFloors(this, width, height);
         this.rooms = rooms;
         this.platforms = platforms;
 
-        // Inicializar collider dinámico como null
+        // Collider dinámico
         this.activeCollider = null;
-        this.lastValidFloor = null; // 🔑 NUEVO: Guardar último piso válido
+        this.lastValidFloor = null;
 
         // Jugador
         const startRoom = this.rooms[0];
@@ -56,17 +56,9 @@ export default class GameScene extends Phaser.Scene {
         this.player.setDepth(10);
         this.lifeManager = new LifeManager(this, this.player, 3);
 
-
-        // Escaleras
-        this.ladders = createLadders(this, rooms, floorHeight);
-        this.ladders.children.iterate(trap => {
-            trap.setDepth(5);
-        });
-
         const floorY = this.rooms[1].solidFloor.y;
 
-        //PREFACTS
-        // Ventana (prefab)
+        // Ventanas
         this.windows = [
             createWindow(this, 100, this.rooms[1].solidFloor.y),
             createWindow(this, 550, this.rooms[2].solidFloor.y),
@@ -77,7 +69,7 @@ export default class GameScene extends Phaser.Scene {
             this.physics.add.collider(this.player, w);
         });
 
-        //Escritorio
+        // Escritorio
         this.desk = createDesk(this, 1000, floorY);
         this.physics.add.collider(this.player, this.desk);
 
@@ -90,15 +82,14 @@ export default class GameScene extends Phaser.Scene {
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');
 
-            key.setScale(0.1);      // para una imagen grande como la que pasaste
+            key.setScale(0.1);
 
-            // Opcional: ajustar hitbox según la escala
             if (key.body) {
                 key.body.setSize(key.width, key.height, true);
             }
         });
-        
-        //ectoplasma
+
+        // Ectoplasma
         this.ectoplasmGroup = this.physics.add.staticGroup();
         [
             {x: 600, floor: this.rooms[1].solidFloor.y},
@@ -110,8 +101,7 @@ export default class GameScene extends Phaser.Scene {
         });
         this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
 
-
-        // tween flotante
+        // tween flotante en llaves
         this.keysGroup.children.iterate(key => {
             this.tweens.add({
                 targets: key,
@@ -125,7 +115,13 @@ export default class GameScene extends Phaser.Scene {
 
         // Puerta (ático)
         this.doorOpen = false;
-        this.door = this.physics.add.staticSprite(width - 60, this.rooms[4].solidFloor.y - 27, 'door');
+        this.door = this.physics.add.staticSprite(
+            width - 60,
+            this.rooms[4].solidFloor.y - 27,
+            'door'
+        );
+        this.door.setScale(0.15);
+        this.door.refreshBody();
 
         // Enemigos
         this.enemies = createEnemies?.(this) || [];
@@ -136,9 +132,7 @@ export default class GameScene extends Phaser.Scene {
         });
 
         // Overlaps
-        // this.physics.add.overlap(this.player, this.ladders, () => this.onLadder = true);
         this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
-        //this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
         if (this.ghost) this.physics.add.overlap(this.player, this.ghost, this.hitGhost, null, this);
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
 
@@ -158,17 +152,6 @@ export default class GameScene extends Phaser.Scene {
             color: '#ffeb3b'
         }).setOrigin(0.5, 0).setScrollFactor(0);
 
-        // Escaleras
-        //sthis.onLadder = false;
-
-        // Resize
-        /*this.scale.on('resize', (gameSize) => {
-            const w = gameSize.width;
-            const h = gameSize.height;
-            this.cameras.main.setBounds(0, 0, w, worldHeight);
-            this.msg.setPosition(w / 2, 40);
-            this.door.setPosition(w - 60, floorsY[4] - 27);
-        });*/
         const keyboard = this.input.keyboard;
         this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.add.text(160, 160, "Presiona E para salir de la casa", {
@@ -178,47 +161,38 @@ export default class GameScene extends Phaser.Scene {
     }
 
     update() {
-        const cursors = this.input.keyboard.createCursorKeys();
         const player = this.player;
 
-        // === 🔧 COLLIDER DINÁMICO MEJORADO ===
+        // === COLLIDER DINÁMICO ===
         const playerBottom = player.getBottomCenter().y;
-        
-        // 🎯 Encontrar piso más cercano con lógica mejorada
+
         let closestFloor = null;
         let minDistance = Infinity;
 
         this.platforms.forEach(f => {
             const floorY = f.y;
             const distance = Math.abs(floorY - playerBottom);
-            
-            // Solo considerar pisos que están debajo o muy cerca del jugador
+
             const isBelow = floorY >= playerBottom - 20;
             const isClose = distance < 100;
-            
+
             if (isBelow && isClose && distance < minDistance) {
                 minDistance = distance;
                 closestFloor = f;
             }
         });
 
-        // 🔒 PROTECCIÓN ESPECIAL AL AGACHARSE
+        // Protección especial al agacharse
         if (player.isCrouching) {
-            // Si ya tenemos un collider válido, NO lo cambiamos durante el agachado
             if (this.activeCollider && this.activeCollider.active) {
                 const currentFloor = this.lastValidFloor;
-                
+
                 if (currentFloor && currentFloor.active) {
                     const currentDistance = currentFloor.y - playerBottom;
-                    
-                    // Mantener el collider actual si el piso sigue siendo válido
-                    // Rango más permisivo para evitar cambios durante el agachado
+
                     if (currentDistance >= -30 && currentDistance < 150) {
-                        // No hacer nada, mantener el collider actual
-                        // Importante: usar 'return' aquí causaría problemas con updateLadders
-                        // En su lugar, simplemente no actualizamos el collider
+                        // Mantener collider actual
                     } else {
-                        // El piso actual ya no es válido, buscar uno nuevo
                         if (closestFloor) {
                             this.activeCollider.destroy();
                             this.activeCollider = this.physics.add.collider(player, closestFloor);
@@ -227,57 +201,45 @@ export default class GameScene extends Phaser.Scene {
                     }
                 }
             } else {
-                // No hay collider activo, crear uno nuevo si encontramos piso
                 if (closestFloor) {
                     this.activeCollider = this.physics.add.collider(player, closestFloor);
                     this.lastValidFloor = closestFloor;
                 }
             }
         } else {
-            // 🔄 Collider dinámico normal (cuando no está agachado)
             const shouldUpdateCollider = (
-                !this.activeCollider || 
+                !this.activeCollider ||
                 !this.activeCollider.active ||
                 (closestFloor && this.lastValidFloor !== closestFloor)
             );
 
             if (shouldUpdateCollider && closestFloor) {
-                // Destruir collider anterior
                 if (this.activeCollider) {
                     this.activeCollider.destroy();
                 }
-                
-                // Crear nuevo collider
                 this.activeCollider = this.physics.add.collider(player, closestFloor);
                 this.lastValidFloor = closestFloor;
             }
         }
 
-        // Resetear bandera de escalera
-        updateLadders(this, cursors);
-
-        // Si aún no existe el gráfico, créalo una vez
+        // 🔍 Debug de colisiones
         if (!this.debugGraphics) {
             this.debugGraphics = this.add.graphics();
         }
 
-        // Limpiar lo que dibujó el frame anterior
         this.debugGraphics.clear();
-
-        // Estilo del borde (rojo semi transparente)
         this.debugGraphics.lineStyle(2, 0xff0000, 0.5);
 
-        // 🔳 Hitbox del jugador
+        // Hitbox del jugador
         if (player.body) {
             const b = player.body;
             this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
-            
-            // Dibujar punto de los pies (verde)
+
             this.debugGraphics.fillStyle(0x00ff00, 1);
             this.debugGraphics.fillCircle(player.getBottomCenter().x, playerBottom, 4);
         }
 
-        // 🔳 Colliders del ectoplasma
+        // Hitboxes del ectoplasma
         if (this.ectoplasmGroup) {
             this.ectoplasmGroup.children.iterate(trap => {
                 if (!trap || !trap.body) return;
@@ -286,6 +248,7 @@ export default class GameScene extends Phaser.Scene {
             });
         }
 
+        // Rango de enemigos
         if (this.enemies) {
             this.enemies.forEach(enemy => {
                 const distToPlayer = Phaser.Math.Distance.Between(
@@ -295,28 +258,20 @@ export default class GameScene extends Phaser.Scene {
                     enemy.y
                 );
 
-                const ATTACK_RANGE = 90; // distancia a la que el gato ataca
-
-                // 🟡 Dibuja un círculo que representa el rango del enemigo
+                const ATTACK_RANGE = 90;
                 this.debugGraphics.strokeCircle(enemy.x, enemy.y, ATTACK_RANGE);
 
                 if (distToPlayer < ATTACK_RANGE) {
-                    // Evitamos spamear la animación
                     if (!enemy.isAttacking) {
                         enemy.isAttacking = true;
 
-                        // El gato mira hacia el jugador
                         enemy.setFlipX(this.player.x < enemy.x);
-
-                        // Reproducir animación de ataque
                         enemy.play('evilCat-attack', true);
 
-                        // Opcional: aplicar golpe al jugador
                         if (typeof this.hitGhost === 'function') {
                             this.hitGhost();
                         }
 
-                        // Cuando termine la animación, volver a flotar
                         enemy.once(
                             Phaser.Animations.Events.ANIMATION_COMPLETE,
                             () => {
@@ -328,7 +283,6 @@ export default class GameScene extends Phaser.Scene {
                 }
             });
         }
-
     }
 
     collectKey = (_, key) => {
@@ -339,7 +293,6 @@ export default class GameScene extends Phaser.Scene {
         if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
             this.doorOpen = true;
             this.msg.setText('¡La ventana del ático está abierta!');
-            //this.door.disableBody(true, true);
             this.time.delayedCall(1200, () => this.msg.setText(''));
         }
     };
@@ -353,8 +306,6 @@ export default class GameScene extends Phaser.Scene {
 
     tryFinish = () => {
         if (this.doorOpen) {
-            //this.scene.pause();
-            // salida de la casa
             if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
                 const dist = Phaser.Math.Distance.Between(
                     this.player.x,
@@ -371,16 +322,13 @@ export default class GameScene extends Phaser.Scene {
     };
 
     hitEctoplasm = (player, trap) => {
-        // Si está en el aire (saltando / cayendo), no recibe daño
         if (!player.isOnFloor) {
             return;
         }
 
-        // Pequeño cooldown para que no te golpee cada frame
         if (this.ectoplasmHurt) return;
         this.ectoplasmHurt = true;
 
-        // Empujón hacia atrás y arriba
         const dir = Math.sign(player.body.velocity.x || 1);
         player.setVelocity(-150 * dir, -220);
 
@@ -394,5 +342,4 @@ export default class GameScene extends Phaser.Scene {
             this.ectoplasmHurt = false;
         });
     };
-
 }
