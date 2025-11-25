@@ -41,9 +41,9 @@ export class LifeManager {
             this.scene.scale.height / 2,
             'GAME OVER',
             { fontFamily: 'Arial', fontSize: 48, color: '#ff0000' }
-        ).setOrigin(0.5);
+        ).setOrigin(0.5).setDepth(1000);
 
-         const fade = this.scene.add.rectangle(
+        const fade = this.scene.add.rectangle(
             this.scene.cameras.main.centerX,
             this.scene.cameras.main.centerY,
             this.scene.scale.width,
