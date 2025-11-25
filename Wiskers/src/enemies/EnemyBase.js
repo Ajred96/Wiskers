@@ -11,10 +11,10 @@ export class EnemyBase extends Phaser.Physics.Arcade.Sprite {
         this.setCollideWorldBounds(true);
     }
 
-    patrol({ fromX, toX, duration = 2500 }) {
+    patrol({fromX, toX, duration = 2500}) {
         this.scene.tweens.add({
             targets: this,
-            x: { from: fromX, to: toX },
+            x: {from: fromX, to: toX},
             duration,
             yoyo: true,
             repeat: -1,

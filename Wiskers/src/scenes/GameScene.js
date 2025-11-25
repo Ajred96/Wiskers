@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
-import { preloadEnemies, createEnemies } from '../enemies/index.js';
-import { createFloors } from '../systems/floorManager.js';
-import { createWindow } from '../objects/WindowPrefab.js';
-import { createDesk } from '../objects/DeskPrefab.js';
-import { createEctoplasm } from '../objects/EctoplasmPrefab.js';
-import { LifeManager } from '../systems/lifeManager.js';
+import {createEnemies, preloadEnemies} from '../enemies/index.js';
+import {createFloors} from '../systems/floorManager.js';
+import {createWindow} from '../objects/WindowPrefab.js';
+import {createDesk} from '../objects/DeskPrefab.js';
+import {createEctoplasm} from '../objects/EctoplasmPrefab.js';
+import {LifeManager} from '../systems/lifeManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -77,7 +77,7 @@ export default class GameScene extends Phaser.Scene {
         this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
         [
             {x: 1200, y: this.rooms[0].solidFloor.y - 40},
-            {x: 1100, y: this.rooms[2].solidFloor.y -100},
+            {x: 1100, y: this.rooms[2].solidFloor.y - 100},
             {x: 900, y: this.rooms[3].solidFloor.y - 40}
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');

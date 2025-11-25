@@ -9,7 +9,7 @@ export function createFloors(scene, width, height) {
 
     const rooms = [];
     const platforms = [];
-    const colors = [0x7b5ba0, 0x9f73b5, 0x6f5fa8, 0x836ab5]; 
+    const colors = [0x7b5ba0, 0x9f73b5, 0x6f5fa8, 0x836ab5];
     for (let i = 0; i < totalFloors; i++) {
         const yTop = worldHeight - (i * floorHeight);
         const yBottom = yTop - floorHeight;
@@ -21,14 +21,14 @@ export function createFloors(scene, width, height) {
             width / 2,
             yCenter,
             width,
-            floorHeight+5,
+            floorHeight + 5,
             'roomTexture'
         )
-        .setDepth(-5)
-        .setTint(colors[i % colors.length])
-        .setScrollFactor(1)
-        .setTilePosition(0, scrollOffsetY)
-        .setAlpha(0.9);
+            .setDepth(-5)
+            .setTint(colors[i % colors.length])
+            .setScrollFactor(1)
+            .setTilePosition(0, scrollOffsetY)
+            .setAlpha(0.9);
 
         // --- Piso visible (textura del suelo) ---
         const tileFloor = scene.add.tileSprite(
@@ -38,8 +38,8 @@ export function createFloors(scene, width, height) {
             60,
             'floorTexture'
         )
-        .setOrigin(0.5, 1)
-        .setDepth(-4);
+            .setOrigin(0.5, 1)
+            .setDepth(-4);
 
         // --- Piso invisible (colisionable) ---
         const solidFloor = scene.add.rectangle(
@@ -54,10 +54,10 @@ export function createFloors(scene, width, height) {
         solidFloor.visible = false;
 
         // Guardamos referencias
-        rooms.push({ roomBg, tileFloor, solidFloor });
+        rooms.push({roomBg, tileFloor, solidFloor});
         platforms.push(solidFloor);
     }
 
     // Retornamos todo lo necesario para usar en la escena
-    return { rooms, platforms, worldHeight,floorHeight };
+    return {rooms, platforms, worldHeight, floorHeight};
 }

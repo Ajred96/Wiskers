@@ -47,7 +47,7 @@ export class LifeManager {
             this.scene.scale.width / 2,
             this.scene.scale.height / 2,
             'GAME OVER',
-            { fontFamily: 'Arial', fontSize: 48, color: '#ff0000' }
+            {fontFamily: 'Arial', fontSize: 48, color: '#ff0000'}
         ).setOrigin(0.5);
 
         this.scene.time.delayedCall(2000, () => {

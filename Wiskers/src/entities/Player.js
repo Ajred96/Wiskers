@@ -106,7 +106,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         console.log('  - Posición Y:', this.y);
         console.log('  - Pies Y actual:', currentFeetY);
         console.log('  - Pies Y objetivo:', targetFeetY);
-        
+
         this._withPhysicsLock(() => {
             // Aplica frame/anim primero y escala inmediatamente (sin esperar a UPDATE)
             this.setTexture('gatoIdle');
@@ -118,7 +118,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             this._setBottom(targetFeetY);
             this.refreshHitbox();
         });
-        
+
         // Limpiar la posición guardada
         this.crouchStartFeetY = null;
         this.scene.time.delayedCall(50, () => {
@@ -128,7 +128,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             console.log('  - ¿Tocando suelo?:', this.body?.blocked.down);
         });
     }
-    
+
     refreshHitbox() {
         const body = this.body;
         if (!body) return;
@@ -151,7 +151,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
 
-        const { left, right, down, space } = this.cursors;
+        const {left, right, down, space} = this.cursors;
 
         const onFloor = this.body.blocked.down;
         this.isOnFloor = onFloor;
@@ -247,6 +247,5 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             if (prevVy < 0) body.setVelocityY(prevVy); else body.setVelocityY(0);
         });
     }
-
 
 }
