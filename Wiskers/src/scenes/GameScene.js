@@ -355,6 +355,7 @@ export default class GameScene extends Phaser.Scene {
         this.player.setVelocity(-200 * Math.sign(this.player.body.velocity.x || 1), -150);
         this.cameras.main.shake(120, 0.004);
         this.ui.showMessage('¡Ay! El gato fantasma te golpeó');
+        this.lifeManager.takeDamage(1);
         //this.time.delayedCall(1000, () => this.msg.setText(''));
     };
 
@@ -394,7 +395,6 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.shake(120, 0.004);
         this.ui.showMessage('¡Auch! El ectoplasma te quemó las patitas 💥');
         this.catHurtSound.play();
-        this.player.lives--;
         this.lifeManager.takeDamage(1);
         this.time.delayedCall(900, () => {
             //this.msg.setText('');
