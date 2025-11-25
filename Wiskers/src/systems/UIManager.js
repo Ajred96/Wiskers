@@ -10,8 +10,8 @@ export class UIManager {
         this.container = scene.add.container(0, 0).setScrollFactor(0);
 
         // 🔹 Crear textos básicos
-        this.ui.keysText = this.createText(12, 12, "Llaves: 0/0");
-        //this.ui.livesText = this.createText(120, 12, "Vidas: 3");
+        this.ui.keysText = this.createText(12, 12, "Llaves:");
+        this.ui.livesText = this.createText(120, 12, "");
 
         // 🔹 Mensajes grandes al centro
         this.ui.centerMessage = this.createText(

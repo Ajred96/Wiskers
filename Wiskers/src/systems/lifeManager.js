@@ -1,24 +1,20 @@
 // systems/LifeManager.js
+import { UIManager } from '../systems/UIManager.js';
 export class LifeManager {
     constructor(scene, player, initialLives = 3) {
         this.scene = scene;
         this.player = player;
         this.lives = initialLives;
         this.invulnerable = false;
-
-        // Crear UI
-        this.uiText = scene.add.text(120, 12, `Vidas: ${this.lives}`, {
-            fontFamily: 'Arial',
-            fontSize: 18,
-            color: '#ffffff'
-        }).setScrollFactor(0);
+        this.ui = new UIManager(scene);
+        this.ui.setLives(this.lives);
     }
 
     takeDamage(amount = 1) {
         if (this.invulnerable) return;
 
         this.lives -= amount;
-        this.updateUI();
+        this.ui.setLives(this.lives);
 
         // feedback visual
         this.player.setTint(0xff0000);
@@ -35,9 +31,6 @@ export class LifeManager {
         }
     }
 
-    updateUI() {
-        this.uiText.setText(`Vidas: ${this.lives}`);
-    }
 
     gameOver() {
         this.player.setVelocity(0, 0);
