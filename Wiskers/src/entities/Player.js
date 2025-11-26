@@ -15,7 +15,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.isCrouching = false;
 
         // === Escalado base ===
-        const BASE_SCALE = 0.2;
+        const BASE_SCALE = 0.1;
 
         this.setTexture('gatoIdle');
         this.setScale(BASE_SCALE);
