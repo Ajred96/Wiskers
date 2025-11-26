@@ -11,15 +11,15 @@ export default class BootScene extends Phaser.Scene {
 
         // Imagen estática (quieto)
         this.load.image('gatoIdle', '/assets/player/gatoBueno.png');
-        //gato agachado
+        // Gato agachado
         this.load.image('gatoCrouch', '/assets/player/gatoAgachado.png');
 
         // Cargar cada frame del gato caminando exportado desde Unity
-        for (let i = 0; i < 20; i++) { // Ajusta 20 al número real de frames exportados
+        for (let i = 0; i < 20; i++) {
             this.load.image(`gatoWalk_${i}`, `/assets/player/gatoBuenoCaminando/gatoBuenoCaminando_${i}.png`);
         }
 
-        // === Mundo (plataformas, escaleras, llaves, puerta) ===
+        // === Mundo (plataformas, puerta) ===
         const g = this.make.graphics({x: 0, y: 0, add: false});
 
         // Plataforma
@@ -28,27 +28,12 @@ export default class BootScene extends Phaser.Scene {
         g.generateTexture('platform', 400, 16);
         g.clear();
 
-        // Escalera
-        g.fillStyle(0x9bb3d1, 1);
-        g.fillRect(0, 0, 24, 120);
-        for (let y = 10; y < 120; y += 14) {
-            g.fillStyle(0x6e85a8, 1);
-            g.fillRect(2, y, 20, 3);
-        }
-        g.generateTexture('ladder', 24, 120);
-        g.clear();
-
         // Puerta
-        g.fillStyle(0x6b3a2e, 1);
-        g.fillRoundedRect(0, 0, 34, 54, 6);
-        g.fillStyle(0x2b1813, 1);
-        g.fillRect(6, 10, 22, 30);
-        g.generateTexture('door', 34, 54);
-        g.clear();
+        this.load.image('door', '/assets/others/puerta.png');
     }
 
     create() {
-        // Animación caminando (usa los 20 frames)
+        // Animación caminando
         this.anims.create({
             key: 'player-walk',
             frames: Array.from({length: 20}, (_, i) => ({key: `gatoWalk_${i}`})),
@@ -56,7 +41,7 @@ export default class BootScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Animación quieto (usa la imagen estática)
+        // Animación quieto
         this.anims.create({
             key: 'player-idle',
             frames: [{key: 'gatoIdle'}],

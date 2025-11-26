@@ -16,7 +16,7 @@ export function createWindow(scene, x, y) {
     windowSprite.body.setSize(windowW * 0.9, windowH * 0.11);
     windowSprite.body.setOffset(windowW * 0.11, windowH * 0.9);
 
-    windowSprite.setDepth(2);
+    windowSprite.setDepth(-4.5);
 
     return windowSprite;
 }
