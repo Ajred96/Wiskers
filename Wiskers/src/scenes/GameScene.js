@@ -61,8 +61,8 @@ export default class GameScene extends Phaser.Scene {
         // Ventanas
         this.windows = [
             createWindow(this, 100, this.rooms[1].solidFloor.y),
-            createWindow(this, 550, this.rooms[2].solidFloor.y),
-            createWindow(this, 290, this.rooms[3].solidFloor.y)
+            createWindow(this, 900, this.rooms[2].solidFloor.y),
+            createWindow(this, 1090, this.rooms[3].solidFloor.y)
         ];
 
         this.windows.forEach(w => {
@@ -70,15 +70,15 @@ export default class GameScene extends Phaser.Scene {
         });
 
         // Escritorio
-        this.desk = createDesk(this, 1000, floorY);
+        this.desk = createDesk(this, 1250, floorY);
         this.physics.add.collider(this.player, this.desk);
 
         // Llaves
         this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
         [
-            {x: 1200, y: this.rooms[0].solidFloor.y - 40},
-            {x: 1100, y: this.rooms[2].solidFloor.y - 100},
-            {x: 900, y: this.rooms[3].solidFloor.y - 40}
+            {x: 1800, y: this.rooms[0].solidFloor.y - 40},
+            {x: 1800, y: this.rooms[2].solidFloor.y - 100},
+            {x: 50, y: this.rooms[3].solidFloor.y - 40}
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');
 
@@ -93,8 +93,8 @@ export default class GameScene extends Phaser.Scene {
         this.ectoplasmGroup = this.physics.add.staticGroup();
         [
             {x: 600, floor: this.rooms[1].solidFloor.y},
-            {x: 1050, floor: this.rooms[2].solidFloor.y},
-            {x: 800, floor: this.rooms[3].solidFloor.y}
+            {x: 1550, floor: this.rooms[2].solidFloor.y},
+            {x: 1250, floor: this.rooms[3].solidFloor.y}
         ].forEach(({x, floor}) => {
             const trap = createEctoplasm(this, x, floor);
             this.ectoplasmGroup.add(trap);
@@ -165,16 +165,29 @@ export default class GameScene extends Phaser.Scene {
 
         // === COLLIDER DINÁMICO ===
         const playerBottom = player.getBottomCenter().y;
+        const playerX = player.x;
 
         let closestFloor = null;
         let minDistance = Infinity;
 
         this.platforms.forEach(f => {
-            const floorY = f.y;
-            const distance = Math.abs(floorY - playerBottom);
+            if (!f.body) return;
 
-            const isBelow = floorY >= playerBottom - 20;
-            const isClose = distance < 100;
+            const body = f.body;
+
+            // 1) Solo considerar plataformas sobre las que estamos "en X"
+            const withinX =
+                playerX >= body.left - 4 &&
+                playerX <= body.right + 4;
+
+            if (!withinX) return;
+
+            // 2) Usar la parte superior del cuerpo como superficie real
+            const surfaceY = body.top;
+            const distance = Math.abs(surfaceY - playerBottom);
+
+            const isBelow = surfaceY >= playerBottom - 10;
+            const isClose = distance < 180;
 
             if (isBelow && isClose && distance < minDistance) {
                 minDistance = distance;
@@ -187,10 +200,11 @@ export default class GameScene extends Phaser.Scene {
             if (this.activeCollider && this.activeCollider.active) {
                 const currentFloor = this.lastValidFloor;
 
-                if (currentFloor && currentFloor.active) {
-                    const currentDistance = currentFloor.y - playerBottom;
+                if (currentFloor && currentFloor.active && currentFloor.body) {
+                    const surfaceY = currentFloor.body.top;
+                    const currentDistance = surfaceY - playerBottom;
 
-                    if (currentDistance >= -30 && currentDistance < 150) {
+                    if (currentDistance >= -40 && currentDistance < 180) {
                         // Mantener collider actual
                     } else {
                         if (closestFloor) {
@@ -283,6 +297,17 @@ export default class GameScene extends Phaser.Scene {
                 }
             });
         }
+
+        // === CAÍDA INFINITA ===
+        // rooms[0].solidFloor es el piso más bajo
+        const bottomFloorY = this.rooms[0].solidFloor.y;
+
+        // Si el gato está bastante por debajo del piso más bajo,
+        // significa que se cayó por el hueco
+        if (player.y > bottomFloorY + 150) {
+            this.resetLevel();
+            return;
+        }
     }
 
     collectKey = (_, key) => {
@@ -342,4 +367,13 @@ export default class GameScene extends Phaser.Scene {
             this.ectoplasmHurt = false;
         });
     };
+
+    resetLevel() {
+        // aquí puedes parar sonidos, etc.
+        if (this.generalSound) {
+            this.generalSound.stop();
+        }
+        // Reinicia toda la escena: jugador, llaves, vidas, enemigos…
+        this.scene.restart();
+    }
 }

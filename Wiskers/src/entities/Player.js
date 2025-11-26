@@ -11,7 +11,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.cursors = scene.input.keyboard.createCursorKeys();
         this.lives = 3;
         this.speed = 200;
-        this.jumpVel = -360;
+        this.jumpVel = -400;
         this.isCrouching = false;
 
         // === Escalado base ===
