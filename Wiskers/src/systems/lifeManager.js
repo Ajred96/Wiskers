@@ -1,20 +1,24 @@
 // systems/LifeManager.js
-import { UIManager } from '../systems/UIManager.js';
 export class LifeManager {
     constructor(scene, player, initialLives = 3) {
         this.scene = scene;
         this.player = player;
         this.lives = initialLives;
         this.invulnerable = false;
-        this.ui = new UIManager(scene);
-        this.ui.setLives(this.lives);
+
+        // Crear UI
+        this.uiText = scene.add.text(120, 12, `Vidas: ${this.lives}`, {
+            fontFamily: 'Arial',
+            fontSize: 18,
+            color: '#ffffff'
+        }).setScrollFactor(0);
     }
 
     takeDamage(amount = 1) {
         if (this.invulnerable) return;
 
         this.lives -= amount;
-        this.ui.setLives(this.lives);
+        this.updateUI();
 
         // feedback visual
         this.player.setTint(0xff0000);
@@ -31,6 +35,9 @@ export class LifeManager {
         }
     }
 
+    updateUI() {
+        this.uiText.setText(`Vidas: ${this.lives}`);
+    }
 
     gameOver() {
         this.player.setVelocity(0, 0);
@@ -40,24 +47,8 @@ export class LifeManager {
             this.scene.scale.width / 2,
             this.scene.scale.height / 2,
             'GAME OVER',
-            { fontFamily: 'Arial', fontSize: 48, color: '#ff0000' }
-        ).setOrigin(0.5).setDepth(1000);
-
-        const fade = this.scene.add.rectangle(
-            this.scene.cameras.main.centerX,
-            this.scene.cameras.main.centerY,
-            this.scene.scale.width,
-            this.scene.scale.height,
-            0x000000,
-            0.3
-        ).setScrollFactor(0);
-
-        this.scene.tweens.add({
-            targets: fade,
-            alpha: 0.7,
-            duration: 3000,
-            ease: "Power2",
-        });
+            {fontFamily: 'Arial', fontSize: 48, color: '#ff0000'}
+        ).setOrigin(0.5);
 
         this.scene.time.delayedCall(2000, () => {
             this.scene.scene.restart();
