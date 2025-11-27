@@ -92,8 +92,8 @@ export default class GameScene extends Phaser.Scene {
         // Ectoplasma
         this.ectoplasmGroup = this.physics.add.staticGroup();
         [
-            {x: 600, floor: this.rooms[1].solidFloor.y},
-            {x: 1550, floor: this.rooms[2].solidFloor.y},
+            {x: 500, floor: this.rooms[1].solidFloor.y},
+            {x: 300, floor: this.rooms[2].solidFloor.y},
             {x: 1250, floor: this.rooms[3].solidFloor.y}
         ].forEach(({x, floor}) => {
             const trap = createEctoplasm(this, x, floor);
