@@ -60,7 +60,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Ventanas
         this.windows = [
-            createWindow(this, 100, this.rooms[1].solidFloor.y),
+            createWindow(this, 70, this.rooms[1].solidFloor.y),
             createWindow(this, 900, this.rooms[2].solidFloor.y),
             createWindow(this, 1090, this.rooms[3].solidFloor.y)
         ];
