@@ -6,6 +6,7 @@ import {createWindow} from '../objects/WindowPrefab.js';
 import {createDesk} from '../objects/DeskPrefab.js';
 import {createEctoplasm} from '../objects/EctoplasmPrefab.js';
 import {LifeManager} from '../systems/lifeManager.js';
+import { UIManager } from '../systems/UIManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -32,7 +33,7 @@ export default class GameScene extends Phaser.Scene {
     create() {
         const width = this.scale.width;
         const height = this.scale.height;
-        
+
         this.totalKeys = 3;
         this.keysCollected = 0;
 
@@ -143,11 +144,9 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
         // UI
-        this.ui = this.add.text(12, 12, `Llaves: 0/${this.totalKeys}`, {
-            fontFamily: 'Arial',
-            fontSize: 18,
-            color: '#fff'
-        }).setScrollFactor(0);
+        this.ui = new UIManager(this);
+        this.ui.setKeys(this.keysCollected, this.totalKeys);
+
         this.msg = this.add.text(width / 2, 40, '', {
             fontFamily: 'Arial',
             fontSize: 22,
@@ -315,20 +314,18 @@ export default class GameScene extends Phaser.Scene {
     collectKey = (_, key) => {
         key.destroy();
         this.keysCollected++;
-        this.ui.setText(`Llaves: ${this.keysCollected}/${this.totalKeys}`);
+        this.ui.setKeys(this.keysCollected,this.totalKeys);
         this.collectedKeys.play({loop: false, volume: 0.8});
         if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
             this.doorOpen = true;
-            this.msg.setText('¡La ventana del ático está abierta!');
-            this.time.delayedCall(1200, () => this.msg.setText(''));
+            this.ui.showMessage('¡La ventana del ático está abierta!');
         }
     };
 
     hitGhost = () => {
         this.player.setVelocity(-200 * Math.sign(this.player.body.velocity.x || 1), -150);
         this.cameras.main.shake(120, 0.004);
-        this.msg.setText('¡Ay! El gato fantasma te golpeó');
-        this.time.delayedCall(1000, () => this.msg.setText(''));
+        this.ui.showMessage('¡Ay! El gato fantasma te golpeó');
     };
 
     tryFinish = () => {
@@ -360,11 +357,11 @@ export default class GameScene extends Phaser.Scene {
         player.setVelocity(-150 * dir, -220);
 
         this.cameras.main.shake(120, 0.004);
-        this.msg.setText('¡Auch! El ectoplasma te quemó las patitas 💥');
+        this.ui.showMessage('¡Auch! El ectoplasma te quemó las patitas 💥');
         this.catHurtSound.play();
         this.lifeManager.takeDamage(1);
         this.time.delayedCall(900, () => {
-            this.msg.setText('');
+            //this.msg.setText('');
             this.ectoplasmHurt = false;
         });
     };
