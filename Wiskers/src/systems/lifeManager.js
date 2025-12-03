@@ -6,12 +6,10 @@ export class LifeManager {
         this.lives = initialLives;
         this.invulnerable = false;
 
-        // Crear UI
-        this.uiText = scene.add.text(120, 12, `Vidas: ${this.lives}`, {
-            fontFamily: 'Arial',
-            fontSize: 18,
-            color: '#ffffff'
-        }).setScrollFactor(0);
+        // dibujar HUD de vidas al inicio (si la escena ya tiene el método)
+        if (this.scene.redrawLivesHUD) {
+            this.scene.redrawLivesHUD();
+        }
     }
 
     takeDamage(amount = 1) {
@@ -20,11 +18,9 @@ export class LifeManager {
         this.lives -= amount;
         this.updateUI();
 
-        // feedback visual
         this.player.setTint(0xff0000);
         this.invulnerable = true;
 
-        // Recuperar normalidad
         this.scene.time.delayedCall(1000, () => {
             this.player.clearTint();
             this.invulnerable = false;
@@ -36,7 +32,9 @@ export class LifeManager {
     }
 
     updateUI() {
-        this.uiText.setText(`Vidas: ${this.lives}`);
+        if (this.scene.redrawLivesHUD) {
+            this.scene.redrawLivesHUD();
+        }
     }
 
     gameOver() {

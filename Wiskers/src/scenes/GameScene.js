@@ -24,11 +24,18 @@ export default class GameScene extends Phaser.Scene {
         this.load.image('desk', '/assets/others/escritorio.png');
         this.load.image('window', '/assets/others/ventana.png');
         this.load.image('door', '/assets/others/puerta.png');
+        this.load.image('yarn', '/assets/others/bola.png');
+
+        // Iconos HUD
+        this.load.image('iconKey', '/assets/others/iconLlave.png');
+        this.load.image('iconHeart', '/assets/others/iconVida.png');
+        this.load.image('iconYarn', '/assets/others/iconBola.png');
 
         //Sonidos
         this.load.audio('angryCat', 'assets/sounds/angry-cat.mp3');
         this.load.audio('generalSound', 'assets/sounds/spooky.mp3');
         this.load.audio('collectedKeys', 'assets/sounds/collectkeys.mp3');
+        this.load.audio('falling', 'assets/sounds/falling.mp3');
     }
 
     create() {
@@ -37,11 +44,17 @@ export default class GameScene extends Phaser.Scene {
         this.catHurtSound = this.sound.add('angryCat');
         this.generalSound = this.sound.add('generalSound');
         this.collectedKeys = this.sound.add('collectedKeys');
+        this.fallSound = this.sound.add('falling');
+
+        // 🔄 RESET DE ESTADO DE LA PARTIDA
+        this.keysCollected = 0;   // muy importante: se resetea aquí
+        this.yarnCount = 0;       // también reiniciamos el estambre
+        this.isFalling = false;   // por si veníamos de una caída anterior
 
         this.generalSound.play({loop: true, volume: 0.1});
 
         // Pisos y fondos
-        const {rooms, platforms, worldHeight, floorHeight} = createFloors(this, width, height);
+        const {rooms, platforms, worldHeight} = createFloors(this, width, height);
         this.rooms = rooms;
         this.platforms = platforms;
 
@@ -73,6 +86,31 @@ export default class GameScene extends Phaser.Scene {
         this.desk = createDesk(this, 1250, floorY);
         this.physics.add.collider(this.player, this.desk);
 
+        // === PROYECTILES DE ESTAMBRE (bolas lanzadas) ===
+        this.yarnGroup = this.physics.add.group({
+            allowGravity: true,
+            bounceX: 0.2,
+            bounceY: 0.2
+        });
+
+        // Tecla para lanzar estambre (X)
+        this.keyThrow = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+
+        // === PICKUPS DE ESTAMBRE EN EL MAPA ===
+        this.yarnPickups = this.physics.add.staticGroup();
+
+        [
+            {x: 400, floorIndex: 0},
+            {x: 1400, floorIndex: 1},
+            {x: 300, floorIndex: 2},
+            {x: 1600, floorIndex: 3}
+        ].forEach(({x, floorIndex}) => {
+            const y = this.rooms[floorIndex].solidFloor.y - 40;
+            const yarn = this.yarnPickups.create(x, y, 'yarn');
+            yarn.setScale(0.08);
+            yarn.refreshBody();
+        });
+
         // Llaves
         this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
         [
@@ -81,9 +119,7 @@ export default class GameScene extends Phaser.Scene {
             {x: 50, y: this.rooms[3].solidFloor.y - 40}
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');
-
             key.setScale(0.1);
-
             if (key.body) {
                 key.body.setSize(key.width, key.height, true);
             }
@@ -131,33 +167,88 @@ export default class GameScene extends Phaser.Scene {
             });
         });
 
-        // Overlaps
+        this.platforms.forEach(floor => {
+            this.physics.add.collider(this.yarnGroup, floor);
+        });
+
+        // Overlaps / colliders
+        this.physics.add.collider(this.yarnGroup, this.enemies, this.hitEnemyWithYarn, null, this);
         this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
         if (this.ghost) this.physics.add.overlap(this.player, this.ghost, this.hitGhost, null, this);
         this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
+        this.physics.add.overlap(this.player, this.yarnPickups, this.collectYarn, null, this);
 
         // Cámara
         this.cameras.main.setBounds(0, 0, width, worldHeight);
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // UI
-        this.ui = this.add.text(12, 12, `Llaves: 0/${this.totalKeys}`, {
-            fontFamily: 'Arial',
-            fontSize: 18,
-            color: '#fff'
-        }).setScrollFactor(0);
-        this.msg = this.add.text(width / 2, 40, '', {
+        // === HUD (fondo y contenedores) ===
+
+        // Fondo del HUD (barra arriba-izquierda)
+        this.hudBg = this.add.rectangle(
+            8,          // x
+            8,          // y
+            370,        // ancho
+            130,         // alto (3 filas de iconos)
+            0x000000,
+            0.45        // alpha
+        )
+            .setOrigin(0, 0)
+            .setScrollFactor(0)
+            .setDepth(1000);
+
+        // contenedores (filas de iconos)
+        this.keyHUD = this.add.container(250, 50).setScrollFactor(0).setDepth(1001);
+        this.lifeHUD = this.add.container(40, 40).setScrollFactor(0).setDepth(1001);
+        this.yarnHUD = this.add.container(40, 110).setScrollFactor(0).setDepth(1001);
+
+        // dibujar HUD inicial
+        this.redrawKeysHUD();
+        this.redrawLivesHUD();
+        this.redrawYarnHUD();
+
+        // Mensajes flotantes (la bajamos un poco para que no se choque con el HUD)
+        this.msg = this.add.text(width / 2, 110, '', {
             fontFamily: 'Arial',
             fontSize: 22,
             color: '#ffeb3b'
         }).setOrigin(0.5, 0).setScrollFactor(0);
 
+        // Tecla para la puerta
         const keyboard = this.input.keyboard;
         this.keyE = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.add.text(160, 160, "Presiona E para salir de la casa", {
             fontSize: "16px",
             color: "#fff"
         }).setScrollFactor(1);
+
+        // === Tutorial visual inicial ===
+        this.tutorialText = this.add.text(
+            width / 2,
+            20,
+            '← / → moverse   ↑ saltar   X lanzar estambre',
+            {
+                fontFamily: 'Arial',
+                fontSize: 18,
+                color: '#ffffff',
+                backgroundColor: 'rgba(0,0,0,0.4)'
+            }
+        )
+            .setOrigin(0.5, 0)
+            .setScrollFactor(0)
+            .setDepth(1100);
+
+        // Desaparece suavemente después de unos segundos
+        this.tweens.add({
+            targets: this.tutorialText,
+            alpha: 0,
+            delay: 4000,
+            duration: 800,
+            onComplete: () => {
+                this.tutorialText.destroy();
+            }
+        });
+
     }
 
     update() {
@@ -175,14 +266,11 @@ export default class GameScene extends Phaser.Scene {
 
             const body = f.body;
 
-            // 1) Solo considerar plataformas sobre las que estamos "en X"
             const withinX =
                 playerX >= body.left - 4 &&
                 playerX <= body.right + 4;
-
             if (!withinX) return;
 
-            // 2) Usar la parte superior del cuerpo como superficie real
             const surfaceY = body.top;
             const distance = Math.abs(surfaceY - playerBottom);
 
@@ -195,7 +283,6 @@ export default class GameScene extends Phaser.Scene {
             }
         });
 
-        // Protección especial al agacharse
         if (player.isCrouching) {
             if (this.activeCollider && this.activeCollider.active) {
                 const currentFloor = this.lastValidFloor;
@@ -205,7 +292,7 @@ export default class GameScene extends Phaser.Scene {
                     const currentDistance = surfaceY - playerBottom;
 
                     if (currentDistance >= -40 && currentDistance < 180) {
-                        // Mantener collider actual
+                        // mantiene collider
                     } else {
                         if (closestFloor) {
                             this.activeCollider.destroy();
@@ -236,7 +323,7 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // 🔍 Debug de colisiones
+        // 🔍 Debug
         if (!this.debugGraphics) {
             this.debugGraphics = this.add.graphics();
         }
@@ -244,16 +331,13 @@ export default class GameScene extends Phaser.Scene {
         this.debugGraphics.clear();
         this.debugGraphics.lineStyle(2, 0xff0000, 0.5);
 
-        // Hitbox del jugador
         if (player.body) {
             const b = player.body;
             this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
-
             this.debugGraphics.fillStyle(0x00ff00, 1);
             this.debugGraphics.fillCircle(player.getBottomCenter().x, playerBottom, 4);
         }
 
-        // Hitboxes del ectoplasma
         if (this.ectoplasmGroup) {
             this.ectoplasmGroup.children.iterate(trap => {
                 if (!trap || !trap.body) return;
@@ -262,9 +346,10 @@ export default class GameScene extends Phaser.Scene {
             });
         }
 
-        // Rango de enemigos
         if (this.enemies) {
             this.enemies.forEach(enemy => {
+                if (!enemy || !enemy.active) return;
+
                 const distToPlayer = Phaser.Math.Distance.Between(
                     this.player.x,
                     this.player.y,
@@ -289,6 +374,7 @@ export default class GameScene extends Phaser.Scene {
                         enemy.once(
                             Phaser.Animations.Events.ANIMATION_COMPLETE,
                             () => {
+                                if (!enemy || !enemy.active) return;
                                 enemy.isAttacking = false;
                                 enemy.play('evilCat-float', true);
                             }
@@ -299,35 +385,120 @@ export default class GameScene extends Phaser.Scene {
         }
 
         // === CAÍDA INFINITA ===
-        // rooms[0].solidFloor es el piso más bajo
         const bottomFloorY = this.rooms[0].solidFloor.y;
 
-        // Si el gato está bastante por debajo del piso más bajo,
-        // significa que se cayó por el hueco
-        if (player.y > bottomFloorY + 150) {
-            this.resetLevel();
+        if (player.y > bottomFloorY + 150 && !this.isFalling) {
+            this.isFalling = true;
+
+            this.fallSound.play({volume: 0.7});
+
+            this.fallSound.once('complete', () => {
+                this.resetLevel();
+            });
+
             return;
+        }
+
+        // Lanzar estambre
+        if (Phaser.Input.Keyboard.JustDown(this.keyThrow)) {
+            this.throwYarn();
         }
     }
 
-    collectKey = (_, key) => {
-        key.destroy();
-        this.keysCollected++;
-        this.ui.setText(`Llaves: ${this.keysCollected}/${this.totalKeys}`);
-        this.collectedKeys.play({loop: false, volume: 0.8});
-        if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
-            this.doorOpen = true;
-            this.msg.setText('¡La ventana del ático está abierta!');
-            this.time.delayedCall(1200, () => this.msg.setText(''));
+    // === HUD HELPERS ===
+
+    redrawKeysHUD() {
+        if (!this.keyHUD) return;
+        this.keyHUD.removeAll(true);
+
+        // como mucho tantas como totalKeys
+        const n = Phaser.Math.Clamp(this.keysCollected || 0, 0, this.totalKeys);
+
+        const spacing = 50;
+
+        for (let i = 0; i < n; i++) {
+            const icon = this.add.image(i * spacing, 0, 'iconKey')
+                .setScale(0.12)
+                .setScrollFactor(0);
+            this.keyHUD.add(icon);
         }
+    }
+
+    redrawLivesHUD() {
+        if (!this.lifeHUD || !this.lifeManager) return;
+        this.lifeHUD.removeAll(true);
+
+        // por seguridad, entre 0 y 5 corazones
+        const n = Phaser.Math.Clamp(this.lifeManager.lives || 0, 0, 5);
+
+        const spacing = 70;
+
+        for (let i = 0; i < n; i++) {
+            const icon = this.add.image(i * spacing, 0, 'iconHeart')
+                .setScale(0.1)
+                .setScrollFactor(0);
+            this.lifeHUD.add(icon);
+        }
+    }
+
+    redrawYarnHUD() {
+        if (!this.yarnHUD) return;
+        this.yarnHUD.removeAll(true);
+
+        // máximo 6 iconos de estambre en pantalla (aunque tengas más)
+        const n = Phaser.Math.Clamp(this.yarnCount || 0, 0, 6);
+
+        const spacing = 70;
+
+        for (let i = 0; i < n; i++) {
+            const icon = this.add.image(i * spacing, 0, 'iconYarn')
+                .setScale(0.08)
+                .setScrollFactor(0);
+            this.yarnHUD.add(icon);
+        }
+    }
+
+    // === LÓGICA DE JUEGO ===
+
+    collectKey = (_, key) => {
+        // 👇 si ya está deshabilitada, no repetimos
+        if (!key.body || !key.body.enable) return;
+
+        // desactivar collider para que no se llame varias veces
+        key.body.enable = false;
+
+        this.tweens.add({
+            targets: key,
+            scale: key.scale * 1.3,
+            y: key.y - 10,
+            duration: 120,
+            yoyo: true,
+            onComplete: () => {
+                key.destroy();
+
+                this.keysCollected++;
+                this.redrawKeysHUD();
+                this.collectedKeys.play({loop: false, volume: 0.8});
+
+                if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
+                    this.doorOpen = true;
+                    this.onDoorUnlocked();
+                }
+            }
+        });
     };
 
     hitGhost = () => {
         this.player.setVelocity(-200 * Math.sign(this.player.body.velocity.x || 1), -150);
         this.cameras.main.shake(120, 0.004);
+
+        // 👇 aquí le quitamos 1 vida usando el LifeManager
+        this.lifeManager.takeDamage(1);
+
         this.msg.setText('¡Ay! El gato fantasma te golpeó');
         this.time.delayedCall(1000, () => this.msg.setText(''));
     };
+
 
     tryFinish = () => {
         if (this.doorOpen) {
@@ -339,6 +510,12 @@ export default class GameScene extends Phaser.Scene {
                     this.door.y
                 );
                 if (dist < 100) {
+                    // detener parpadeo si existe
+                    if (this.doorBlinkTween) {
+                        this.doorBlinkTween.stop();
+                        this.door.setAlpha(1);
+                    }
+
                     this.generalSound.stop();
                     this.scene.start('MultiFloorScene');
                 }
@@ -369,11 +546,96 @@ export default class GameScene extends Phaser.Scene {
     };
 
     resetLevel() {
-        // aquí puedes parar sonidos, etc.
         if (this.generalSound) {
             this.generalSound.stop();
         }
-        // Reinicia toda la escena: jugador, llaves, vidas, enemigos…
         this.scene.restart();
     }
+
+    collectYarn = (player, yarnPickup) => {
+        // 👇 si ya está deshabilitado, no hacemos nada
+        if (!yarnPickup.body || !yarnPickup.body.enable) return;
+
+        // desactivar collider inmediatamente para que no se repita el overlap
+        yarnPickup.body.enable = false;
+
+        this.tweens.add({
+            targets: yarnPickup,
+            scale: yarnPickup.scale * 1.3,
+            y: yarnPickup.y - 10,
+            duration: 120,
+            yoyo: true,
+            onComplete: () => {
+                yarnPickup.destroy();
+
+                this.yarnCount += 1;
+                this.redrawYarnHUD();
+
+                this.msg.setText('¡Has recogido una bola de estambre! 🧶');
+                this.time.delayedCall(1000, () => this.msg.setText(''));
+            }
+        });
+    };
+
+    throwYarn() {
+        if (this.yarnCount <= 0) {
+            this.msg.setText('No tienes estambre 😿');
+            this.time.delayedCall(800, () => this.msg.setText(''));
+            return;
+        }
+
+        const player = this.player;
+
+        const yarn = this.yarnGroup.create(player.x, player.y - 10, 'yarn');
+        yarn.setScale(0.1);
+        yarn.setDepth(5);
+        if (yarn.body) {
+            yarn.body.setSize(yarn.width, yarn.height, true);
+        }
+
+        const direction = player.flipX ? -1 : 1;
+
+        yarn.setVelocity(350 * direction, -200);
+        yarn.setAngularVelocity(400 * direction);
+        yarn.body.allowGravity = true;
+
+        this.yarnCount -= 1;
+        this.redrawYarnHUD();
+
+        this.time.delayedCall(3000, () => {
+            if (yarn && yarn.active) yarn.destroy();
+        });
+    }
+
+    hitEnemyWithYarn(yarn, enemy) {
+        if (!enemy || !enemy.active) return;
+
+        enemy.destroy();
+        yarn.destroy();
+
+        this.enemies = this.enemies.filter(e => e !== enemy);
+
+        this.msg.setText('¡Fantasma derrotado! 👻🧶');
+        this.time.delayedCall(1000, () => this.msg.setText(''));
+    }
+
+    onDoorUnlocked() {
+        // mensaje
+        this.msg.setText('¡La puerta del ático está abierta! Presiona E cerca para salir');
+        this.time.delayedCall(1800, () => this.msg.setText(''));
+
+        // tinte dorado
+        this.door.setTint(0xfff176);
+
+        // parpadeo suave
+        this.doorBlinkTween = this.tweens.add({
+            targets: this.door,
+            alpha: 0.4,
+            duration: 500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.inOut'
+        });
+    }
+
 }
