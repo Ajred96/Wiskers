@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
-import {createEnemies, preloadEnemies} from '../enemies/index.js';
-import {createFloors} from '../systems/floorManager.js';
-import {createWindow} from '../objects/WindowPrefab.js';
-import {createDesk} from '../objects/DeskPrefab.js';
-import {createEctoplasm} from '../objects/EctoplasmPrefab.js';
-import {LifeManager} from '../systems/lifeManager.js';
+import { createEnemies, preloadEnemies } from '../enemies/index.js';
+import { createFloors } from '../systems/floorManager.js';
+import { createWindow } from '../objects/WindowPrefab.js';
+import { createDesk } from '../objects/DeskPrefab.js';
+import { createEctoplasm } from '../objects/EctoplasmPrefab.js';
+import { LifeManager } from '../systems/lifeManager.js';
 import { UIManager } from '../systems/UIManager.js';
 
 export default class GameScene extends Phaser.Scene {
@@ -54,10 +54,10 @@ export default class GameScene extends Phaser.Scene {
         this.yarnCount = 0;       // también reiniciamos el estambre
         this.isFalling = false;   // por si veníamos de una caída anterior
 
-        this.generalSound.play({loop: true, volume: 0.1});
+        this.generalSound.play({ loop: true, volume: 0.1 });
 
         // Pisos y fondos
-        const {rooms, platforms, worldHeight} = createFloors(this, width, height);
+        const { rooms, platforms, worldHeight } = createFloors(this, width, height);
         this.rooms = rooms;
         this.platforms = platforms;
 
@@ -103,11 +103,11 @@ export default class GameScene extends Phaser.Scene {
         this.yarnPickups = this.physics.add.staticGroup();
 
         [
-            {x: 400, floorIndex: 0},
-            {x: 1400, floorIndex: 1},
-            {x: 300, floorIndex: 2},
-            {x: 1600, floorIndex: 3}
-        ].forEach(({x, floorIndex}) => {
+            { x: 400, floorIndex: 0 },
+            { x: 1400, floorIndex: 1 },
+            { x: 300, floorIndex: 2 },
+            { x: 1600, floorIndex: 3 }
+        ].forEach(({ x, floorIndex }) => {
             const y = this.rooms[floorIndex].solidFloor.y - 40;
             const yarn = this.yarnPickups.create(x, y, 'yarn');
             yarn.setScale(0.08);
@@ -115,11 +115,11 @@ export default class GameScene extends Phaser.Scene {
         });
 
         // Llaves
-        this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
+        this.keysGroup = this.physics.add.group({ allowGravity: false, immovable: true });
         [
-            {x: 300, y: this.rooms[1].solidFloor.y - 40},
-            {x: 500, y: this.rooms[2].solidFloor.y - 100},
-            {x: 50, y: this.rooms[3].solidFloor.y - 40}
+            { x: 300, y: this.rooms[1].solidFloor.y - 40 },
+            { x: 500, y: this.rooms[2].solidFloor.y - 100 },
+            { x: 50, y: this.rooms[3].solidFloor.y - 40 }
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');
             key.setScale(0.1);
@@ -131,10 +131,10 @@ export default class GameScene extends Phaser.Scene {
         // Ectoplasma
         this.ectoplasmGroup = this.physics.add.staticGroup();
         [
-            {x: 500, floor: this.rooms[1].solidFloor.y},
-            {x: 300, floor: this.rooms[2].solidFloor.y},
-            {x: 1250, floor: this.rooms[3].solidFloor.y}
-        ].forEach(({x, floor}) => {
+            { x: 500, floor: this.rooms[1].solidFloor.y },
+            { x: 300, floor: this.rooms[2].solidFloor.y },
+            { x: 1250, floor: this.rooms[3].solidFloor.y }
+        ].forEach(({ x, floor }) => {
             const trap = createEctoplasm(this, x, floor);
             this.ectoplasmGroup.add(trap);
         });
@@ -394,7 +394,7 @@ export default class GameScene extends Phaser.Scene {
         if (player.y > bottomFloorY + 150 && !this.isFalling) {
             this.isFalling = true;
 
-            this.fallSound.play({volume: 0.7});
+            this.fallSound.play({ volume: 0.7 });
 
             this.fallSound.once('complete', () => {
                 this.resetLevel();
@@ -482,7 +482,7 @@ export default class GameScene extends Phaser.Scene {
 
                 this.keysCollected++;
                 this.redrawKeysHUD();
-                this.collectedKeys.play({loop: false, volume: 0.8});
+                this.collectedKeys.play({ loop: false, volume: 0.8 });
 
                 if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
                     this.doorOpen = true;
@@ -574,16 +574,16 @@ export default class GameScene extends Phaser.Scene {
                 this.yarnCount += 1;
                 this.redrawYarnHUD();
 
-                this.msg.setText('¡Has recogido una bola de estambre! 🧶');
-                this.time.delayedCall(1000, () => this.msg.setText(''));
+                this.ui.showMessage('¡Has recogido una bola de estambre! 🧶');
+                this.time.delayedCall(1000, () => this.ui.showMessage(''));
             }
         });
     };
 
     throwYarn() {
         if (this.yarnCount <= 0) {
-            this.msg.setText('No tienes estambre 😿');
-            this.time.delayedCall(800, () => this.msg.setText(''));
+            this.ui.showMessage('No tienes estambre 😿');
+            this.time.delayedCall(800, () => this.ui.showMessage(''));
             return;
         }
 
@@ -618,14 +618,14 @@ export default class GameScene extends Phaser.Scene {
 
         this.enemies = this.enemies.filter(e => e !== enemy);
 
-        this.msg.setText('¡Fantasma derrotado! 👻🧶');
-        this.time.delayedCall(1000, () => this.msg.setText(''));
+        this.ui.showMessage('¡Fantasma derrotado! 👻🧶');
+        this.time.delayedCall(1000, () => this.ui.showMessage(''));
     }
 
     onDoorUnlocked() {
         // mensaje
-        this.msg.setText('¡La puerta del ático está abierta! Presiona E cerca para salir');
-        this.time.delayedCall(1800, () => this.msg.setText(''));
+        this.ui.showMessage('¡La puerta del ático está abierta! Presiona E cerca para salir');
+        this.time.delayedCall(1800, () => this.ui.showMessage(''));
 
         // tinte dorado
         this.door.setTint(0xfff176);
