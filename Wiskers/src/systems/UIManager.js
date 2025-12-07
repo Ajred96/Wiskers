@@ -20,6 +20,10 @@ export class UIManager {
         this.lifeHUD = scene.add.container(40, 40).setScrollFactor(0);
         this.container.add(this.lifeHUD);
 
+        // 🔹 Contenedor para estambre
+        this.yarnHUD = scene.add.container(40, 110).setScrollFactor(0);
+        this.container.add(this.yarnHUD);
+
         // 🔹 Mensajes grandes al centro
         this.ui.centerMessage = this.createText(
             scene.scale.width / 2,
@@ -41,6 +45,22 @@ export class UIManager {
         t.setScrollFactor(0);
         this.container.add(t);
         return t;
+    }
+
+    // --- Actualizar estambre (con iconos) ---
+    updateYarn(count) {
+        if (!this.yarnHUD) return;
+        this.yarnHUD.removeAll(true);
+
+        const n = Phaser.Math.Clamp(count || 0, 0, 6);
+        const spacing = 70;
+
+        for (let i = 0; i < n; i++) {
+            const icon = this.scene.add.image(i * spacing, 0, 'iconYarn')
+                .setScale(0.08)
+                .setScrollFactor(0);
+            this.yarnHUD.add(icon);
+        }
     }
 
     // --- Actualizar vidas (con iconos) ---

@@ -199,24 +199,13 @@ export default class GameScene extends Phaser.Scene {
             .setOrigin(0, 0)
             .setScrollFactor(0)
             .setDepth(1000);
-
-        // contenedores (filas de iconos)
-        // contenedores (filas de iconos)
-        // this.keyHUD movido a UIManager
-        // this.lifeHUD movido a UIManager
-
-        this.yarnHUD = this.add.container(40, 110).setScrollFactor(0).setDepth(1001);
-
-        // dibujar HUD inicial
-        // dibujar HUD inicial
-        // this.redrawKeysHUD(); // Delegado a UIManager
-        // this.redrawLivesHUD(); // Delegado a UIManager
-
-        this.redrawYarnHUD();
+        // this.redrawYarnHUD(); // Delegado a UIManager
 
         this.ui = new UIManager(this);
         this.ui.updateKeys(this.keysCollected, this.totalKeys);
         this.ui.updateLives(this.lifeManager.lives);
+        this.ui.updateYarn(this.yarnCount);
+
 
 
 
@@ -421,22 +410,8 @@ export default class GameScene extends Phaser.Scene {
     // redrawLivesHUD movido a UIManager
 
 
-    redrawYarnHUD() {
-        if (!this.yarnHUD) return;
-        this.yarnHUD.removeAll(true);
+    // redrawYarnHUD movido a UIManager
 
-        // máximo 6 iconos de estambre en pantalla (aunque tengas más)
-        const n = Phaser.Math.Clamp(this.yarnCount || 0, 0, 6);
-
-        const spacing = 70;
-
-        for (let i = 0; i < n; i++) {
-            const icon = this.add.image(i * spacing, 0, 'iconYarn')
-                .setScale(0.08)
-                .setScrollFactor(0);
-            this.yarnHUD.add(icon);
-        }
-    }
 
     // === LÓGICA DE JUEGO ===
 
@@ -552,7 +527,7 @@ export default class GameScene extends Phaser.Scene {
                 yarnPickup.destroy();
 
                 this.yarnCount += 1;
-                this.redrawYarnHUD();
+                this.ui.updateYarn(this.yarnCount);
 
                 this.ui.showMessage('¡Has recogido una bola de estambre! 🧶');
             }
@@ -582,9 +557,10 @@ export default class GameScene extends Phaser.Scene {
         yarn.body.allowGravity = true;
 
         this.yarnCount -= 1;
-        this.redrawYarnHUD();
+        this.ui.updateYarn(this.yarnCount);
 
         this.time.delayedCall(3000, () => {
+
             if (yarn && yarn.active) yarn.destroy();
         });
     }
