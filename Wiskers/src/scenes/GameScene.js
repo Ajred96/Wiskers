@@ -216,6 +216,7 @@ export default class GameScene extends Phaser.Scene {
             fontSize: 22,
             color: '#ffeb3b'
         }).setOrigin(0.5, 0).setScrollFactor(0);
+        this.ui = new UIManager(this);
 
         // Tecla para la puerta
         const keyboard = this.input.keyboard;
