@@ -11,22 +11,20 @@ export class UIManager {
 
         // Fondo del HUD (barra arriba-izquierda)
         this.hudBg = scene.add.rectangle(
-            8,          // x
-            8,          // y
-            370,        // ancho
-            130,         // alto (3 filas de iconos)
+            0,          // x
+            0,          // y
+            310,        // ancho
+            80,         // alto (3 filas de iconos)
             0x333333,   // color: gris oscuro (más claro que negro)
             0.45        // alpha
-        )
-            .setOrigin(0, 0)
-            .setScrollFactor(0);
+        ).setOrigin(0, 0);
         this.container.add(this.hudBg);
 
         // 🔹 Crear textos básicos
         // this.ui.livesText = this.createText(120, 12, ""); // Ya no usamos texto para vidas
 
         // 🔹 Contenedor para llaves
-        this.keyHUD = scene.add.container(250, 50).setScrollFactor(0);
+        this.keyHUD = scene.add.container(250, 40).setScrollFactor(0);
         this.container.add(this.keyHUD);
 
         // 🔹 Contenedor para vidas
@@ -95,12 +93,12 @@ export class UIManager {
         if (!this.lifeHUD) return;
         this.lifeHUD.removeAll(true);
 
-        const n = Phaser.Math.Clamp(lives || 0, 0, 5);
-        const spacing = 70;
+        const n = Phaser.Math.Clamp(lives || 0, 0, 6);
+        const spacing = 55;
 
         for (let i = 0; i < n; i++) {
             const icon = this.scene.add.image(i * spacing, 0, 'iconHeart')
-                .setScale(0.1)
+                .setScale(0.09)
                 .setScrollFactor(0);
             this.lifeHUD.add(icon);
         }
@@ -112,11 +110,11 @@ export class UIManager {
         this.keyHUD.removeAll(true);
 
         const n = Phaser.Math.Clamp(collected || 0, 0, total);
-        const spacing = 50;
+        const spacing = 55;
 
         for (let i = 0; i < n; i++) {
             const icon = this.scene.add.image(i * spacing, 0, 'iconKey')
-                .setScale(0.12)
+                .setScale(0.09)
                 .setScrollFactor(0);
             this.keyHUD.add(icon);
         }
