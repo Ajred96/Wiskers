@@ -185,8 +185,6 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, width, worldHeight);
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // === HUD (fondo y contenedores) ===
-
         // Fondo del HUD (barra arriba-izquierda)
         this.hudBg = this.add.rectangle(
             8,          // x
@@ -199,15 +197,10 @@ export default class GameScene extends Phaser.Scene {
             .setOrigin(0, 0)
             .setScrollFactor(0)
             .setDepth(1000);
-        // this.redrawYarnHUD(); // Delegado a UIManager
-
         this.ui = new UIManager(this);
         this.ui.updateKeys(this.keysCollected, this.totalKeys);
         this.ui.updateLives(this.lifeManager.lives);
         this.ui.updateYarn(this.yarnCount);
-
-
-
 
         // Tecla para la puerta
         const keyboard = this.input.keyboard;
@@ -399,19 +392,6 @@ export default class GameScene extends Phaser.Scene {
             this.throwYarn();
         }
     }
-
-    // === HUD HELPERS ===
-
-    // === HUD HELPERS ===
-
-    // redrawKeysHUD movido a UIManager
-
-
-    // redrawLivesHUD movido a UIManager
-
-
-    // redrawYarnHUD movido a UIManager
-
 
     // === LÓGICA DE JUEGO ===
 
