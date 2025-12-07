@@ -6,12 +6,11 @@ import {createWindow} from '../objects/WindowPrefab.js';
 import {createDesk} from '../objects/DeskPrefab.js';
 import {createEctoplasm} from '../objects/EctoplasmPrefab.js';
 import {LifeManager} from '../systems/lifeManager.js';
+import { UIManager } from '../systems/UIManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
         super('GameScene');
-        this.totalKeys = 3;
-        this.keysCollected = 0;
     }
 
     preload() {
@@ -41,6 +40,10 @@ export default class GameScene extends Phaser.Scene {
     create() {
         const width = this.scale.width;
         const height = this.scale.height;
+
+        this.totalKeys = 3;
+        this.keysCollected = 0;
+
         this.catHurtSound = this.sound.add('angryCat');
         this.generalSound = this.sound.add('generalSound');
         this.collectedKeys = this.sound.add('collectedKeys');
@@ -73,7 +76,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Ventanas
         this.windows = [
-            createWindow(this, 100, this.rooms[1].solidFloor.y),
+            createWindow(this, 70, this.rooms[1].solidFloor.y),
             createWindow(this, 900, this.rooms[2].solidFloor.y),
             createWindow(this, 1090, this.rooms[3].solidFloor.y)
         ];
@@ -114,8 +117,8 @@ export default class GameScene extends Phaser.Scene {
         // Llaves
         this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
         [
-            {x: 1800, y: this.rooms[0].solidFloor.y - 40},
-            {x: 1800, y: this.rooms[2].solidFloor.y - 100},
+            {x: 300, y: this.rooms[1].solidFloor.y - 40},
+            {x: 500, y: this.rooms[2].solidFloor.y - 100},
             {x: 50, y: this.rooms[3].solidFloor.y - 40}
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');
@@ -128,8 +131,8 @@ export default class GameScene extends Phaser.Scene {
         // Ectoplasma
         this.ectoplasmGroup = this.physics.add.staticGroup();
         [
-            {x: 600, floor: this.rooms[1].solidFloor.y},
-            {x: 1550, floor: this.rooms[2].solidFloor.y},
+            {x: 500, floor: this.rooms[1].solidFloor.y},
+            {x: 300, floor: this.rooms[2].solidFloor.y},
             {x: 1250, floor: this.rooms[3].solidFloor.y}
         ].forEach(({x, floor}) => {
             const trap = createEctoplasm(this, x, floor);
@@ -535,12 +538,11 @@ export default class GameScene extends Phaser.Scene {
         player.setVelocity(-150 * dir, -220);
 
         this.cameras.main.shake(120, 0.004);
-        this.msg.setText('¡Auch! El ectoplasma te quemó las patitas 💥');
+        this.ui.showMessage('¡Auch! El ectoplasma te quemó las patitas 💥');
         this.catHurtSound.play();
-        this.player.lives--;
         this.lifeManager.takeDamage(1);
         this.time.delayedCall(900, () => {
-            this.msg.setText('');
+            //this.msg.setText('');
             this.ectoplasmHurt = false;
         });
     };
