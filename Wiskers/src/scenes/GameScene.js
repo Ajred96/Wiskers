@@ -105,7 +105,7 @@ export default class GameScene extends Phaser.Scene {
         [
             { x: 400, floorIndex: 0 },
             { x: 1400, floorIndex: 1 },
-            { x: 300, floorIndex: 2 },
+            { x: 200, floorIndex: 2 },
             { x: 1600, floorIndex: 3 }
         ].forEach(({ x, floorIndex }) => {
             const y = this.rooms[floorIndex].solidFloor.y - 40;
