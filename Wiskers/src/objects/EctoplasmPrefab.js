@@ -13,7 +13,7 @@ export function createEctoplasm(scene, x, floorY) {
     trap.body.setSize(w * 0.15, h * 0.2, true);
     trap.body.offset.y += h * 0.3;  // bajar un poco el hitbox
 
-    trap.setDepth(5);
+    trap.setDepth(4);
 
     return trap;  // importante
 }

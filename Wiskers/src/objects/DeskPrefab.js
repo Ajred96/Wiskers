@@ -15,7 +15,7 @@ export function createDesk(scene, x, y) {
     desk.body.setSize(bw * 0.8, bh * 0.25);
     desk.body.setOffset(bw * 0.1, bh * 0.25);
 
-    desk.setDepth(2);
+    desk.setDepth(3);
 
     return desk; // importantísimo
 }
