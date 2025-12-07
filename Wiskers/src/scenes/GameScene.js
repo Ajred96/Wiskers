@@ -201,16 +201,24 @@ export default class GameScene extends Phaser.Scene {
             .setDepth(1000);
 
         // contenedores (filas de iconos)
-        this.keyHUD = this.add.container(250, 50).setScrollFactor(0).setDepth(1001);
-        this.lifeHUD = this.add.container(40, 40).setScrollFactor(0).setDepth(1001);
+        // contenedores (filas de iconos)
+        // this.keyHUD movido a UIManager
+        // this.lifeHUD movido a UIManager
+
         this.yarnHUD = this.add.container(40, 110).setScrollFactor(0).setDepth(1001);
 
         // dibujar HUD inicial
-        this.redrawKeysHUD();
-        this.redrawLivesHUD();
+        // dibujar HUD inicial
+        // this.redrawKeysHUD(); // Delegado a UIManager
+        // this.redrawLivesHUD(); // Delegado a UIManager
+
         this.redrawYarnHUD();
 
         this.ui = new UIManager(this);
+        this.ui.updateKeys(this.keysCollected, this.totalKeys);
+        this.ui.updateLives(this.lifeManager.lives);
+
+
 
         // Tecla para la puerta
         const keyboard = this.input.keyboard;
@@ -405,39 +413,13 @@ export default class GameScene extends Phaser.Scene {
 
     // === HUD HELPERS ===
 
-    redrawKeysHUD() {
-        if (!this.keyHUD) return;
-        this.keyHUD.removeAll(true);
+    // === HUD HELPERS ===
 
-        // como mucho tantas como totalKeys
-        const n = Phaser.Math.Clamp(this.keysCollected || 0, 0, this.totalKeys);
+    // redrawKeysHUD movido a UIManager
 
-        const spacing = 50;
 
-        for (let i = 0; i < n; i++) {
-            const icon = this.add.image(i * spacing, 0, 'iconKey')
-                .setScale(0.12)
-                .setScrollFactor(0);
-            this.keyHUD.add(icon);
-        }
-    }
+    // redrawLivesHUD movido a UIManager
 
-    redrawLivesHUD() {
-        if (!this.lifeHUD || !this.lifeManager) return;
-        this.lifeHUD.removeAll(true);
-
-        // por seguridad, entre 0 y 5 corazones
-        const n = Phaser.Math.Clamp(this.lifeManager.lives || 0, 0, 5);
-
-        const spacing = 70;
-
-        for (let i = 0; i < n; i++) {
-            const icon = this.add.image(i * spacing, 0, 'iconHeart')
-                .setScale(0.1)
-                .setScrollFactor(0);
-            this.lifeHUD.add(icon);
-        }
-    }
 
     redrawYarnHUD() {
         if (!this.yarnHUD) return;
@@ -475,8 +457,9 @@ export default class GameScene extends Phaser.Scene {
                 key.destroy();
 
                 this.keysCollected++;
-                this.redrawKeysHUD();
+                this.ui.updateKeys(this.keysCollected, this.totalKeys);
                 this.collectedKeys.play({ loop: false, volume: 0.8 });
+
 
                 if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
                     this.doorOpen = true;
@@ -492,8 +475,10 @@ export default class GameScene extends Phaser.Scene {
 
         // 👇 aquí le quitamos 1 vida usando el LifeManager
         this.lifeManager.takeDamage(1);
+        this.ui.updateLives(this.lifeManager.lives);
 
         this.ui.showMessage('¡Ay! El gato fantasma te golpeó');
+
         this.time.delayedCall(1000, () => this.ui.showMessage(''));
     };
 
@@ -536,6 +521,7 @@ export default class GameScene extends Phaser.Scene {
         this.ui.showMessage('¡Auch! El ectoplasma te quemó las patitas 💥');
         this.catHurtSound.play();
         this.lifeManager.takeDamage(1);
+        this.ui.updateLives(this.lifeManager.lives);
         this.time.delayedCall(900, () => {
             //this.msg.setText('');
             this.ectoplasmHurt = false;

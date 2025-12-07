@@ -10,8 +10,15 @@ export class UIManager {
         this.container = scene.add.container(0, 0).setScrollFactor(0);
 
         // 🔹 Crear textos básicos
-        this.ui.keysText = this.createText(12, 12, "Llaves:");
-        this.ui.livesText = this.createText(120, 12, "");
+        // this.ui.livesText = this.createText(120, 12, ""); // Ya no usamos texto para vidas
+
+        // 🔹 Contenedor para llaves
+        this.keyHUD = scene.add.container(250, 50).setScrollFactor(0);
+        this.container.add(this.keyHUD);
+
+        // 🔹 Contenedor para vidas
+        this.lifeHUD = scene.add.container(40, 40).setScrollFactor(0);
+        this.container.add(this.lifeHUD);
 
         // 🔹 Mensajes grandes al centro
         this.ui.centerMessage = this.createText(
@@ -36,14 +43,36 @@ export class UIManager {
         return t;
     }
 
-    // --- Actualizar vidas ---
-    setLives(lives) {
-        this.ui.livesText.setText(`Vidas: ${lives}`);
+    // --- Actualizar vidas (con iconos) ---
+    updateLives(lives) {
+        if (!this.lifeHUD) return;
+        this.lifeHUD.removeAll(true);
+
+        const n = Phaser.Math.Clamp(lives || 0, 0, 5);
+        const spacing = 70;
+
+        for (let i = 0; i < n; i++) {
+            const icon = this.scene.add.image(i * spacing, 0, 'iconHeart')
+                .setScale(0.1)
+                .setScrollFactor(0);
+            this.lifeHUD.add(icon);
+        }
     }
 
-    // --- Actualizar llaves ---
-    setKeys(collected, total) {
-        this.ui.keysText.setText(`Llaves: ${collected}/${total}`);
+    // --- Actualizar llaves (con iconos) ---
+    updateKeys(collected, total) {
+        if (!this.keyHUD) return;
+        this.keyHUD.removeAll(true);
+
+        const n = Phaser.Math.Clamp(collected || 0, 0, total);
+        const spacing = 50;
+
+        for (let i = 0; i < n; i++) {
+            const icon = this.scene.add.image(i * spacing, 0, 'iconKey')
+                .setScale(0.12)
+                .setScrollFactor(0);
+            this.keyHUD.add(icon);
+        }
     }
 
     // --- Mensaje temporal ---
