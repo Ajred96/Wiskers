@@ -210,12 +210,6 @@ export default class GameScene extends Phaser.Scene {
         this.redrawLivesHUD();
         this.redrawYarnHUD();
 
-        // Mensajes flotantes (la bajamos un poco para que no se choque con el HUD)
-        this.msg = this.add.text(width / 2, 110, '', {
-            fontFamily: 'Arial',
-            fontSize: 22,
-            color: '#ffeb3b'
-        }).setOrigin(0.5, 0).setScrollFactor(0);
         this.ui = new UIManager(this);
 
         // Tecla para la puerta
@@ -499,8 +493,8 @@ export default class GameScene extends Phaser.Scene {
         // 👇 aquí le quitamos 1 vida usando el LifeManager
         this.lifeManager.takeDamage(1);
 
-        this.msg.setText('¡Ay! El gato fantasma te golpeó');
-        this.time.delayedCall(1000, () => this.msg.setText(''));
+        this.ui.showMessage('¡Ay! El gato fantasma te golpeó');
+        this.time.delayedCall(1000, () => this.ui.showMessage(''));
     };
 
 
@@ -575,7 +569,6 @@ export default class GameScene extends Phaser.Scene {
                 this.redrawYarnHUD();
 
                 this.ui.showMessage('¡Has recogido una bola de estambre! 🧶');
-                this.time.delayedCall(1000, () => this.ui.showMessage(''));
             }
         });
     };
