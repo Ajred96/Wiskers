@@ -118,7 +118,7 @@ export default class GameScene extends Phaser.Scene {
         this.keysGroup = this.physics.add.group({ allowGravity: false, immovable: true });
         [
             { x: 300, y: this.rooms[1].solidFloor.y - 40 },
-            { x: 500, y: this.rooms[2].solidFloor.y - 100 },
+            { x: 1200, y: this.rooms[2].solidFloor.y - 100 },
             { x: 50, y: this.rooms[3].solidFloor.y - 40 }
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');
