@@ -185,18 +185,7 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, width, worldHeight);
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // Fondo del HUD (barra arriba-izquierda)
-        this.hudBg = this.add.rectangle(
-            8,          // x
-            8,          // y
-            370,        // ancho
-            130,         // alto (3 filas de iconos)
-            0x000000,
-            0.45        // alpha
-        )
-            .setOrigin(0, 0)
-            .setScrollFactor(0)
-            .setDepth(1000);
+
         this.ui = new UIManager(this);
         this.ui.updateKeys(this.keysCollected, this.totalKeys);
         this.ui.updateLives(this.lifeManager.lives);

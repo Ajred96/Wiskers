@@ -13,7 +13,7 @@ export class UIManager {
         this.hudBg = scene.add.rectangle(
             0,          // x
             0,          // y
-            310,        // ancho
+            380,        // ancho
             80,         // alto (3 filas de iconos)
             0x333333,   // color: gris oscuro (más claro que negro)
             0.45        // alpha
@@ -94,7 +94,7 @@ export class UIManager {
         this.lifeHUD.removeAll(true);
 
         const n = Phaser.Math.Clamp(lives || 0, 0, 6);
-        const spacing = 55;
+        const spacing = 50;
 
         for (let i = 0; i < n; i++) {
             const icon = this.scene.add.image(i * spacing, 0, 'iconHeart')
@@ -110,7 +110,7 @@ export class UIManager {
         this.keyHUD.removeAll(true);
 
         const n = Phaser.Math.Clamp(collected || 0, 0, total);
-        const spacing = 55;
+        const spacing = 50;
 
         for (let i = 0; i < n; i++) {
             const icon = this.scene.add.image(i * spacing, 0, 'iconKey')
