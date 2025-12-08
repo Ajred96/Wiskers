@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 
-export default class MultiFloorScene extends Phaser.Scene {
+export default class EndScene extends Phaser.Scene {
     constructor() {
-        super('MultiFloorScene');
+        super('EndScene');
     }
 
     preload() {
@@ -18,8 +18,8 @@ export default class MultiFloorScene extends Phaser.Scene {
         this.winSound = this.sound.add('win');
         this.catSound = this.sound.add('cat');
 
-        this.winSound.play({loop: false, volume: 0.8});
-        this.catSound.play({loop: false, volume: 1});
+        this.winSound.play({ loop: false, volume: 0.8 });
+        this.catSound.play({ loop: false, volume: 1 });
 
         this.physics.world.setBounds(0, 0, width, height / 2);
         // Fondo simple

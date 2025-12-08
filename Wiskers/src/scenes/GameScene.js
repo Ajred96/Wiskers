@@ -444,7 +444,7 @@ export default class GameScene extends Phaser.Scene {
                     }
 
                     this.generalSound.stop();
-                    this.scene.start('MultiFloorScene');
+                    this.scene.start('EndScene');
                 }
             }
         }
