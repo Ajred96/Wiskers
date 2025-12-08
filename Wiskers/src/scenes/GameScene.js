@@ -300,26 +300,13 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // 🔍 Debug
-        if (!this.debugGraphics) {
-            this.debugGraphics = this.add.graphics();
-        }
 
-        this.debugGraphics.clear();
-        this.debugGraphics.lineStyle(2, 0xff0000, 0.5);
-
-        if (player.body) {
-            const b = player.body;
-            this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
-            this.debugGraphics.fillStyle(0x00ff00, 1);
-            this.debugGraphics.fillCircle(player.getBottomCenter().x, playerBottom, 4);
-        }
 
         if (this.ectoplasmGroup) {
             this.ectoplasmGroup.children.iterate(trap => {
                 if (!trap || !trap.body) return;
                 const b = trap.body;
-                this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
+                //this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
             });
         }
 
@@ -335,7 +322,7 @@ export default class GameScene extends Phaser.Scene {
                 );
 
                 const ATTACK_RANGE = 90;
-                this.debugGraphics.strokeCircle(enemy.x, enemy.y, ATTACK_RANGE);
+                //his.debugGraphics.strokeCircle(enemy.x, enemy.y, ATTACK_RANGE);
 
                 if (distToPlayer < ATTACK_RANGE) {
                     if (!enemy.isAttacking) {
