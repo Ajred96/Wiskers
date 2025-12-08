@@ -6,8 +6,6 @@ export default class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        // Fondo
-        this.load.image('background', '/assets/background/fondo1.png');
 
         // Imagen estática (quieto)
         this.load.image('gatoIdle', '/assets/player/gatoBueno.png');
