@@ -41,7 +41,7 @@ export class LifeManager {
         this.player.setVelocity(0, 0);
         this.player.setTint(0x000000);
 
-        this.scene.ui.showSign('GAME OVER', 'GAME OVER', this.scene.scale.width / 2, this.scene.scale.height - 200);
+        this.scene.ui.showSign('GAME OVER', 'Perdiste todas las vidas', this.scene.scale.width / 2, this.scene.scale.height - 200);
 
         this.scene.time.delayedCall(2000, () => {
             this.scene.scene.restart();

@@ -7,10 +7,21 @@ export class UIManager {
         this.ui = {};
 
         // 🔹 Grupo raíz para la UI
-        this.container = scene.add.container(0, 0).setScrollFactor(0).setDepth(1000);
+        this.container = this.scene.add.container(0, 0).setScrollFactor(0).setDepth(1000);
 
+        // 🔹 Mensajes grandes al centro
+        this.ui.centerMessage = this.createText(
+            this.scene.scale.width / 2,
+            50,
+            "",
+            28,
+            "#ffeb3b"
+        ).setOrigin(0.5);
+    }
+
+    loadContainers() {
         // Fondo del HUD (barra arriba-izquierda)
-        this.hudBg = scene.add.rectangle(
+        this.hudBg = this.scene.add.rectangle(
             0,          // x
             0,          // y
             380,        // ancho
@@ -24,20 +35,20 @@ export class UIManager {
         // this.ui.livesText = this.createText(120, 12, ""); // Ya no usamos texto para vidas
 
         // 🔹 Contenedor para llaves
-        this.keyHUD = scene.add.container(250, 40).setScrollFactor(0);
+        this.keyHUD = this.scene.add.container(250, 40).setScrollFactor(0);
         this.container.add(this.keyHUD);
 
         // 🔹 Contenedor para vidas
-        this.lifeHUD = scene.add.container(40, 40).setScrollFactor(0);
+        this.lifeHUD = this.scene.add.container(40, 40).setScrollFactor(0);
         this.container.add(this.lifeHUD);
 
         // 🔹 Contenedor PRINCIPAL para estambre (derecha)
         // Lo posicionamos arriba a la derecha
-        this.yarnHUD = scene.add.container(scene.scale.width - 320, 10).setScrollFactor(0);
+        this.yarnHUD = this.scene.add.container(this.scene.scale.width - 320, 10).setScrollFactor(0);
         this.container.add(this.yarnHUD);
 
         // 1. Fondo (dentro del yarnHUD)
-        this.yarnBg = scene.add.rectangle(
+        this.yarnBg = this.scene.add.rectangle(
             0, 0,       // x, y relativos al yarnHUD
             310, 80,    // ancho, alto
             0x333333,
@@ -46,17 +57,8 @@ export class UIManager {
         this.yarnHUD.add(this.yarnBg);
 
         // 2. Contenedor para los iconos (dentro del yarnHUD)
-        this.yarnIcons = scene.add.container(15, 40); // Un poco de margen x, centrado y
+        this.yarnIcons = this.scene.add.container(15, 40); // Un poco de margen x, centrado y
         this.yarnHUD.add(this.yarnIcons);
-
-        // 🔹 Mensajes grandes al centro
-        this.ui.centerMessage = this.createText(
-            scene.scale.width / 2,
-            50,
-            "",
-            28,
-            "#ffeb3b"
-        ).setOrigin(0.5);
     }
 
     // --- Método para crear texto estándar ---

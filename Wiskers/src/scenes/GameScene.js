@@ -188,6 +188,7 @@ export default class GameScene extends Phaser.Scene {
 
 
         this.ui = new UIManager(this);
+        this.ui.loadContainers();
         this.ui.updateKeys(this.gameplayManager.keysCollected, this.gameplayManager.totalKeys);
         this.ui.updateLives(this.lifeManager.lives);
         this.ui.updateYarn(this.gameplayManager.yarnCount);
