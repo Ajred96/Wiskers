@@ -20,7 +20,7 @@ export default class BootScene extends Phaser.Scene {
         }
 
         // === Mundo (plataformas, puerta) ===
-        const g = this.make.graphics({x: 0, y: 0, add: false});
+        const g = this.make.graphics({ x: 0, y: 0, add: false });
 
         // Plataforma
         g.fillStyle(0xffffff, 1);
@@ -36,7 +36,7 @@ export default class BootScene extends Phaser.Scene {
         // Animación caminando
         this.anims.create({
             key: 'player-walk',
-            frames: Array.from({length: 20}, (_, i) => ({key: `gatoWalk_${i}`})),
+            frames: Array.from({ length: 20 }, (_, i) => ({ key: `gatoWalk_${i}` })),
             frameRate: 10,
             repeat: -1
         });
@@ -44,12 +44,12 @@ export default class BootScene extends Phaser.Scene {
         // Animación quieto
         this.anims.create({
             key: 'player-idle',
-            frames: [{key: 'gatoIdle'}],
+            frames: [{ key: 'gatoIdle' }],
             frameRate: 1,
             repeat: -1
         });
 
         // Ir a la escena del juego
-        this.scene.start('GameScene');
+        this.scene.start('EndScene');
     }
 }

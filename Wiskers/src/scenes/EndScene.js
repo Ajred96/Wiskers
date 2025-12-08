@@ -9,7 +9,7 @@ export default class EndScene extends Phaser.Scene {
     preload() {
         this.load.audio('win', 'assets/sounds/win.mp3');
         this.load.audio('cat', 'assets/sounds/cat.mp3');
-
+        this.load.image('background', 'assets/background/fondo1.png');
     }
 
     create() {
@@ -21,12 +21,14 @@ export default class EndScene extends Phaser.Scene {
         this.winSound.play({ loop: false, volume: 0.8 });
         this.catSound.play({ loop: false, volume: 1 });
 
-        this.physics.world.setBounds(0, 0, width, height / 2);
-        // Fondo simple
-        this.add.rectangle(width / 2, height / 2, width, height, 0x1d1f2a);
+        this.physics.world.setBounds(0, 0, width, height - 30);
 
-        // Crear jugador
-        this.player = new Player(this, width / 2, height - 100);
+        // Fondo
+        this.add.image(width / 2, height / 2, 'background')
+            .setDisplaySize(width, height);
+
+        // Crear jugador en la posición inicial (izquierda) y en el suelo
+        this.player = new Player(this, width / 2, height - 50);
         this.physics.add.existing(this.player);
         this.player.setCollideWorldBounds(true);
 
