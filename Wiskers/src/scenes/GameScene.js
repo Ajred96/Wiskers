@@ -1,12 +1,15 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
-import {createEnemies, preloadEnemies} from '../enemies/index.js';
-import {createFloors} from '../systems/floorManager.js';
-import {createWindow} from '../objects/WindowPrefab.js';
-import {createDesk} from '../objects/DeskPrefab.js';
-import {createEctoplasm} from '../objects/EctoplasmPrefab.js';
-import {LifeManager} from '../systems/lifeManager.js';
+import { createEnemies, preloadEnemies } from '../enemies/index.js';
+import { createFloors } from '../systems/floorManager.js';
+import { createWindow } from '../objects/WindowPrefab.js';
+import { createDesk } from '../objects/DeskPrefab.js';
+import { createEctoplasm } from '../objects/EctoplasmPrefab.js';
+import { LifeManager } from '../systems/lifeManager.js';
 import { UIManager } from '../systems/UIManager.js';
+import { PlatformPhysics } from '../systems/PlatformPhysics.js';
+import { DebugSystem } from '../systems/DebugSystem.js';
+import { GameplayManager } from '../systems/GameplayManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -49,21 +52,16 @@ export default class GameScene extends Phaser.Scene {
         this.collectedKeys = this.sound.add('collectedKeys');
         this.fallSound = this.sound.add('falling');
 
-        // 🔄 RESET DE ESTADO DE LA PARTIDA
-        this.keysCollected = 0;   // muy importante: se resetea aquí
-        this.yarnCount = 0;       // también reiniciamos el estambre
-        this.isFalling = false;   // por si veníamos de una caída anterior
+        // Gameplay Manager
+        this.gameplayManager = new GameplayManager(this);
+        this.isFalling = false;
 
-        this.generalSound.play({loop: true, volume: 0.1});
+        this.generalSound.play({ loop: true, volume: 0.1 });
 
         // Pisos y fondos
-        const {rooms, platforms, worldHeight} = createFloors(this, width, height);
+        const { rooms, platforms, worldHeight } = createFloors(this, width, height);
         this.rooms = rooms;
         this.platforms = platforms;
-
-        // Collider dinámico
-        this.activeCollider = null;
-        this.lastValidFloor = null;
 
         // Jugador
         const startRoom = this.rooms[0];
@@ -71,6 +69,9 @@ export default class GameScene extends Phaser.Scene {
         this.player = new Player(this, 80, startY);
         this.player.setDepth(10);
         this.lifeManager = new LifeManager(this, this.player, 3);
+
+        // Collider dinámico (PlatformPhysics)
+        this.platformPhysics = new PlatformPhysics(this, this.player, this.platforms);
 
         const floorY = this.rooms[1].solidFloor.y;
 
@@ -103,11 +104,11 @@ export default class GameScene extends Phaser.Scene {
         this.yarnPickups = this.physics.add.staticGroup();
 
         [
-            {x: 400, floorIndex: 0},
-            {x: 1400, floorIndex: 1},
-            {x: 300, floorIndex: 2},
-            {x: 1600, floorIndex: 3}
-        ].forEach(({x, floorIndex}) => {
+            { x: 400, floorIndex: 0 },
+            { x: 1400, floorIndex: 1 },
+            { x: 200, floorIndex: 2 },
+            { x: 1600, floorIndex: 3 }
+        ].forEach(({ x, floorIndex }) => {
             const y = this.rooms[floorIndex].solidFloor.y - 40;
             const yarn = this.yarnPickups.create(x, y, 'yarn');
             yarn.setScale(0.08);
@@ -115,11 +116,11 @@ export default class GameScene extends Phaser.Scene {
         });
 
         // Llaves
-        this.keysGroup = this.physics.add.group({allowGravity: false, immovable: true});
+        this.keysGroup = this.physics.add.group({ allowGravity: false, immovable: true });
         [
-            {x: 300, y: this.rooms[1].solidFloor.y - 40},
-            {x: 500, y: this.rooms[2].solidFloor.y - 100},
-            {x: 50, y: this.rooms[3].solidFloor.y - 40}
+            { x: 300, y: this.rooms[1].solidFloor.y - 40 },
+            { x: 1200, y: this.rooms[2].solidFloor.y - 100 },
+            { x: 50, y: this.rooms[3].solidFloor.y - 40 }
         ].forEach(p => {
             const key = this.keysGroup.create(p.x, p.y, 'key');
             key.setScale(0.1);
@@ -131,14 +132,14 @@ export default class GameScene extends Phaser.Scene {
         // Ectoplasma
         this.ectoplasmGroup = this.physics.add.staticGroup();
         [
-            {x: 500, floor: this.rooms[1].solidFloor.y},
-            {x: 300, floor: this.rooms[2].solidFloor.y},
-            {x: 1250, floor: this.rooms[3].solidFloor.y}
-        ].forEach(({x, floor}) => {
+            { x: 500, floor: this.rooms[1].solidFloor.y },
+            { x: 300, floor: this.rooms[2].solidFloor.y },
+            { x: 1250, floor: this.rooms[3].solidFloor.y }
+        ].forEach(({ x, floor }) => {
             const trap = createEctoplasm(this, x, floor);
             this.ectoplasmGroup.add(trap);
         });
-        this.physics.add.overlap(this.player, this.ectoplasmGroup, this.hitEctoplasm, null, this);
+        this.physics.add.overlap(this.player, this.ectoplasmGroup, (p, t) => this.gameplayManager.hitEctoplasm(p, t), null, this);
 
         // tween flotante en llaves
         this.keysGroup.children.iterate(key => {
@@ -175,47 +176,22 @@ export default class GameScene extends Phaser.Scene {
         });
 
         // Overlaps / colliders
-        this.physics.add.collider(this.yarnGroup, this.enemies, this.hitEnemyWithYarn, null, this);
-        this.physics.add.overlap(this.player, this.keysGroup, this.collectKey, null, this);
-        if (this.ghost) this.physics.add.overlap(this.player, this.ghost, this.hitGhost, null, this);
-        this.physics.add.overlap(this.player, this.door, this.tryFinish, null, this);
-        this.physics.add.overlap(this.player, this.yarnPickups, this.collectYarn, null, this);
+        this.physics.add.collider(this.yarnGroup, this.enemies, (y, e) => this.gameplayManager.hitEnemyWithYarn(y, e), null, this);
+        this.physics.add.overlap(this.player, this.keysGroup, (p, k) => this.gameplayManager.collectKey(p, k), null, this);
+        if (this.ghost) this.physics.add.overlap(this.player, this.ghost, () => this.gameplayManager.hitGhost(), null, this);
+        this.physics.add.overlap(this.player, this.door, () => this.gameplayManager.tryFinish(), null, this);
+        this.physics.add.overlap(this.player, this.yarnPickups, (p, y) => this.gameplayManager.collectYarn(p, y), null, this);
 
         // Cámara
         this.cameras.main.setBounds(0, 0, width, worldHeight);
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // === HUD (fondo y contenedores) ===
 
-        // Fondo del HUD (barra arriba-izquierda)
-        this.hudBg = this.add.rectangle(
-            8,          // x
-            8,          // y
-            370,        // ancho
-            130,         // alto (3 filas de iconos)
-            0x000000,
-            0.45        // alpha
-        )
-            .setOrigin(0, 0)
-            .setScrollFactor(0)
-            .setDepth(1000);
-
-        // contenedores (filas de iconos)
-        this.keyHUD = this.add.container(250, 50).setScrollFactor(0).setDepth(1001);
-        this.lifeHUD = this.add.container(40, 40).setScrollFactor(0).setDepth(1001);
-        this.yarnHUD = this.add.container(40, 110).setScrollFactor(0).setDepth(1001);
-
-        // dibujar HUD inicial
-        this.redrawKeysHUD();
-        this.redrawLivesHUD();
-        this.redrawYarnHUD();
-
-        // Mensajes flotantes (la bajamos un poco para que no se choque con el HUD)
-        this.msg = this.add.text(width / 2, 110, '', {
-            fontFamily: 'Arial',
-            fontSize: 22,
-            color: '#ffeb3b'
-        }).setOrigin(0.5, 0).setScrollFactor(0);
+        this.ui = new UIManager(this);
+        this.ui.loadContainers();
+        this.ui.updateKeys(this.gameplayManager.keysCollected, this.gameplayManager.totalKeys);
+        this.ui.updateLives(this.lifeManager.lives);
+        this.ui.updateYarn(this.gameplayManager.yarnCount);
 
         // Tecla para la puerta
         const keyboard = this.input.keyboard;
@@ -252,102 +228,24 @@ export default class GameScene extends Phaser.Scene {
             }
         });
 
+        // Debug System
+        this.debugSystem = new DebugSystem(this, this.player, this.enemies, this.ectoplasmGroup);
+
+        // Toggle Debug con tecla P
+        this.input.keyboard.on('keydown-P', () => {
+            this.debugSystem.toggle();
+        });
+
     }
 
     update() {
         const player = this.player;
 
-        // === COLLIDER DINÁMICO ===
-        const playerBottom = player.getBottomCenter().y;
-        const playerX = player.x;
+        // === COLLIDER DINÁMICO (PlatformPhysics) ===
+        this.platformPhysics.update();
 
-        let closestFloor = null;
-        let minDistance = Infinity;
-
-        this.platforms.forEach(f => {
-            if (!f.body) return;
-
-            const body = f.body;
-
-            const withinX =
-                playerX >= body.left - 4 &&
-                playerX <= body.right + 4;
-            if (!withinX) return;
-
-            const surfaceY = body.top;
-            const distance = Math.abs(surfaceY - playerBottom);
-
-            const isBelow = surfaceY >= playerBottom - 10;
-            const isClose = distance < 180;
-
-            if (isBelow && isClose && distance < minDistance) {
-                minDistance = distance;
-                closestFloor = f;
-            }
-        });
-
-        if (player.isCrouching) {
-            if (this.activeCollider && this.activeCollider.active) {
-                const currentFloor = this.lastValidFloor;
-
-                if (currentFloor && currentFloor.active && currentFloor.body) {
-                    const surfaceY = currentFloor.body.top;
-                    const currentDistance = surfaceY - playerBottom;
-
-                    if (currentDistance >= -40 && currentDistance < 180) {
-                        // mantiene collider
-                    } else {
-                        if (closestFloor) {
-                            this.activeCollider.destroy();
-                            this.activeCollider = this.physics.add.collider(player, closestFloor);
-                            this.lastValidFloor = closestFloor;
-                        }
-                    }
-                }
-            } else {
-                if (closestFloor) {
-                    this.activeCollider = this.physics.add.collider(player, closestFloor);
-                    this.lastValidFloor = closestFloor;
-                }
-            }
-        } else {
-            const shouldUpdateCollider = (
-                !this.activeCollider ||
-                !this.activeCollider.active ||
-                (closestFloor && this.lastValidFloor !== closestFloor)
-            );
-
-            if (shouldUpdateCollider && closestFloor) {
-                if (this.activeCollider) {
-                    this.activeCollider.destroy();
-                }
-                this.activeCollider = this.physics.add.collider(player, closestFloor);
-                this.lastValidFloor = closestFloor;
-            }
-        }
-
-        // 🔍 Debug
-        if (!this.debugGraphics) {
-            this.debugGraphics = this.add.graphics();
-        }
-
-        this.debugGraphics.clear();
-        this.debugGraphics.lineStyle(2, 0xff0000, 0.5);
-
-        if (player.body) {
-            const b = player.body;
-            this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
-            this.debugGraphics.fillStyle(0x00ff00, 1);
-            this.debugGraphics.fillCircle(player.getBottomCenter().x, playerBottom, 4);
-        }
-
-        if (this.ectoplasmGroup) {
-            this.ectoplasmGroup.children.iterate(trap => {
-                if (!trap || !trap.body) return;
-                const b = trap.body;
-                this.debugGraphics.strokeRect(b.x, b.y, b.width, b.height);
-            });
-        }
+        // Debug
+        this.debugSystem.update();
 
         if (this.enemies) {
             this.enemies.forEach(enemy => {
@@ -361,7 +259,6 @@ export default class GameScene extends Phaser.Scene {
                 );
 
                 const ATTACK_RANGE = 90;
-                this.debugGraphics.strokeCircle(enemy.x, enemy.y, ATTACK_RANGE);
 
                 if (distToPlayer < ATTACK_RANGE) {
                     if (!enemy.isAttacking) {
@@ -370,8 +267,8 @@ export default class GameScene extends Phaser.Scene {
                         enemy.setFlipX(this.player.x < enemy.x);
                         enemy.play('evilCat-attack', true);
 
-                        if (typeof this.hitGhost === 'function') {
-                            this.hitGhost();
+                        if (typeof this.gameplayManager.hitGhost === 'function') {
+                            this.gameplayManager.hitGhost();
                         }
 
                         enemy.once(
@@ -393,10 +290,10 @@ export default class GameScene extends Phaser.Scene {
         if (player.y > bottomFloorY + 150 && !this.isFalling) {
             this.isFalling = true;
 
-            this.fallSound.play({volume: 0.7});
+            this.fallSound.play({ volume: 0.7 });
 
             this.fallSound.once('complete', () => {
-                this.resetLevel();
+                this.gameplayManager.resetLevel();
             });
 
             return;
@@ -404,240 +301,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Lanzar estambre
         if (Phaser.Input.Keyboard.JustDown(this.keyThrow)) {
-            this.throwYarn();
+            this.gameplayManager.throwYarn();
         }
     }
-
-    // === HUD HELPERS ===
-
-    redrawKeysHUD() {
-        if (!this.keyHUD) return;
-        this.keyHUD.removeAll(true);
-
-        // como mucho tantas como totalKeys
-        const n = Phaser.Math.Clamp(this.keysCollected || 0, 0, this.totalKeys);
-
-        const spacing = 50;
-
-        for (let i = 0; i < n; i++) {
-            const icon = this.add.image(i * spacing, 0, 'iconKey')
-                .setScale(0.12)
-                .setScrollFactor(0);
-            this.keyHUD.add(icon);
-        }
-    }
-
-    redrawLivesHUD() {
-        if (!this.lifeHUD || !this.lifeManager) return;
-        this.lifeHUD.removeAll(true);
-
-        // por seguridad, entre 0 y 5 corazones
-        const n = Phaser.Math.Clamp(this.lifeManager.lives || 0, 0, 5);
-
-        const spacing = 70;
-
-        for (let i = 0; i < n; i++) {
-            const icon = this.add.image(i * spacing, 0, 'iconHeart')
-                .setScale(0.1)
-                .setScrollFactor(0);
-            this.lifeHUD.add(icon);
-        }
-    }
-
-    redrawYarnHUD() {
-        if (!this.yarnHUD) return;
-        this.yarnHUD.removeAll(true);
-
-        // máximo 6 iconos de estambre en pantalla (aunque tengas más)
-        const n = Phaser.Math.Clamp(this.yarnCount || 0, 0, 6);
-
-        const spacing = 70;
-
-        for (let i = 0; i < n; i++) {
-            const icon = this.add.image(i * spacing, 0, 'iconYarn')
-                .setScale(0.08)
-                .setScrollFactor(0);
-            this.yarnHUD.add(icon);
-        }
-    }
-
-    // === LÓGICA DE JUEGO ===
-
-    collectKey = (_, key) => {
-        // 👇 si ya está deshabilitada, no repetimos
-        if (!key.body || !key.body.enable) return;
-
-        // desactivar collider para que no se llame varias veces
-        key.body.enable = false;
-
-        this.tweens.add({
-            targets: key,
-            scale: key.scale * 1.3,
-            y: key.y - 10,
-            duration: 120,
-            yoyo: true,
-            onComplete: () => {
-                key.destroy();
-
-                this.keysCollected++;
-                this.redrawKeysHUD();
-                this.collectedKeys.play({loop: false, volume: 0.8});
-
-                if (this.keysCollected >= this.totalKeys && !this.doorOpen) {
-                    this.doorOpen = true;
-                    this.onDoorUnlocked();
-                }
-            }
-        });
-    };
-
-    hitGhost = () => {
-        this.player.setVelocity(-200 * Math.sign(this.player.body.velocity.x || 1), -150);
-        this.cameras.main.shake(120, 0.004);
-
-        // 👇 aquí le quitamos 1 vida usando el LifeManager
-        this.lifeManager.takeDamage(1);
-
-        this.msg.setText('¡Ay! El gato fantasma te golpeó');
-        this.time.delayedCall(1000, () => this.msg.setText(''));
-    };
-
-
-    tryFinish = () => {
-        if (this.doorOpen) {
-            if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
-                const dist = Phaser.Math.Distance.Between(
-                    this.player.x,
-                    this.player.y,
-                    this.door.x,
-                    this.door.y
-                );
-                if (dist < 100) {
-                    // detener parpadeo si existe
-                    if (this.doorBlinkTween) {
-                        this.doorBlinkTween.stop();
-                        this.door.setAlpha(1);
-                    }
-
-                    this.generalSound.stop();
-                    this.scene.start('MultiFloorScene');
-                }
-            }
-        }
-    };
-
-    hitEctoplasm = (player, trap) => {
-        if (!player.isOnFloor) {
-            return;
-        }
-
-        if (this.ectoplasmHurt) return;
-        this.ectoplasmHurt = true;
-
-        const dir = Math.sign(player.body.velocity.x || 1);
-        player.setVelocity(-150 * dir, -220);
-
-        this.cameras.main.shake(120, 0.004);
-        this.ui.showMessage('¡Auch! El ectoplasma te quemó las patitas 💥');
-        this.catHurtSound.play();
-        this.lifeManager.takeDamage(1);
-        this.time.delayedCall(900, () => {
-            //this.msg.setText('');
-            this.ectoplasmHurt = false;
-        });
-    };
-
-    resetLevel() {
-        if (this.generalSound) {
-            this.generalSound.stop();
-        }
-        this.scene.restart();
-    }
-
-    collectYarn = (player, yarnPickup) => {
-        // 👇 si ya está deshabilitado, no hacemos nada
-        if (!yarnPickup.body || !yarnPickup.body.enable) return;
-
-        // desactivar collider inmediatamente para que no se repita el overlap
-        yarnPickup.body.enable = false;
-
-        this.tweens.add({
-            targets: yarnPickup,
-            scale: yarnPickup.scale * 1.3,
-            y: yarnPickup.y - 10,
-            duration: 120,
-            yoyo: true,
-            onComplete: () => {
-                yarnPickup.destroy();
-
-                this.yarnCount += 1;
-                this.redrawYarnHUD();
-
-                this.msg.setText('¡Has recogido una bola de estambre! 🧶');
-                this.time.delayedCall(1000, () => this.msg.setText(''));
-            }
-        });
-    };
-
-    throwYarn() {
-        if (this.yarnCount <= 0) {
-            this.msg.setText('No tienes estambre 😿');
-            this.time.delayedCall(800, () => this.msg.setText(''));
-            return;
-        }
-
-        const player = this.player;
-
-        const yarn = this.yarnGroup.create(player.x, player.y - 10, 'yarn');
-        yarn.setScale(0.1);
-        yarn.setDepth(5);
-        if (yarn.body) {
-            yarn.body.setSize(yarn.width, yarn.height, true);
-        }
-
-        const direction = player.flipX ? -1 : 1;
-
-        yarn.setVelocity(350 * direction, -200);
-        yarn.setAngularVelocity(400 * direction);
-        yarn.body.allowGravity = true;
-
-        this.yarnCount -= 1;
-        this.redrawYarnHUD();
-
-        this.time.delayedCall(3000, () => {
-            if (yarn && yarn.active) yarn.destroy();
-        });
-    }
-
-    hitEnemyWithYarn(yarn, enemy) {
-        if (!enemy || !enemy.active) return;
-
-        enemy.destroy();
-        yarn.destroy();
-
-        this.enemies = this.enemies.filter(e => e !== enemy);
-
-        this.msg.setText('¡Fantasma derrotado! 👻🧶');
-        this.time.delayedCall(1000, () => this.msg.setText(''));
-    }
-
-    onDoorUnlocked() {
-        // mensaje
-        this.msg.setText('¡La puerta del ático está abierta! Presiona E cerca para salir');
-        this.time.delayedCall(1800, () => this.msg.setText(''));
-
-        // tinte dorado
-        this.door.setTint(0xfff176);
-
-        // parpadeo suave
-        this.doorBlinkTween = this.tweens.add({
-            targets: this.door,
-            alpha: 0.4,
-            duration: 500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.inOut'
-        });
-    }
-
 }
