@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
+import { UIManager } from '../systems/UIManager.js';
 
 export default class EndScene extends Phaser.Scene {
     constructor() {
@@ -63,39 +64,9 @@ export default class EndScene extends Phaser.Scene {
         this.keyESC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
         // Letrero de Victoria (Centro)
-        const signContainer = this.add.container(width / 2, height / 2);
+        this.ui = new UIManager(this);
+        this.ui.showSign('¡Ganaste!', 'Abriste la puerta del ático 🎉', width / 2, height / 2);
 
-        // Fondo del letrero (rectángulo con borde)
-        const signBg = this.add.rectangle(0, 0, 400, 150, 0x5d3954, 0.7);
-        signBg.setStrokeStyle(4, 0xffffff);
-
-        // Texto "Ganaste"
-        const titleText = this.add.text(0, -20, '¡Ganaste!', {
-            fontFamily: 'Arial',
-            fontSize: '48px',
-            fontStyle: 'bold',
-            color: '#ff8d3bff',
-            stroke: '#f8f3f3ff',
-            strokeThickness: 6
-        }).setOrigin(0.5);
-
-        // Subtítulo
-        const subText = this.add.text(0, 40, 'Abriste la puerta del ático 🎉', {
-            fontFamily: 'Arial',
-            fontSize: '20px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-
-        signContainer.add([signBg, titleText, subText]);
-
-        // Animación de entrada del letrero
-        signContainer.setScale(0);
-        this.tweens.add({
-            targets: signContainer,
-            scale: 1,
-            duration: 800,
-            ease: 'Back.out'
-        });
 
         // Texto de volver (abajo)
         this.msg = this.add.text(width / 2, height - 250, 'Presiona E o ESC para volver', {

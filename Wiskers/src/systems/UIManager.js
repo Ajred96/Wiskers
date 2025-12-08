@@ -133,4 +133,44 @@ export class UIManager {
             ease: "Power2",
         });
     }
+
+    // --- Letrero FINAL ---
+    showSign(titulo, descripcion, width, height) {
+        // Letrero en el centro
+        const signContainer = this.scene.add.container(width, height);
+
+        // Fondo del letrero (rectángulo con borde)
+        const signBg = this.scene.add.rectangle(0, 0, 400, 150, 0x5d3954, 0.7);
+        signBg.setStrokeStyle(4, 0xffffff);
+
+        // Texto
+        const titleText = this.scene.add.text(0, -20, titulo, {
+            fontFamily: 'Arial',
+            fontSize: '48px',
+            fontStyle: 'bold',
+            color: '#ff8d3bff',
+            stroke: '#f8f3f3ff',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+
+        // Descripción
+        const subText = this.scene.add.text(0, 40, descripcion, {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+        signContainer.add([signBg, titleText, subText]);
+
+        // Animación de entrada del letrero
+        signContainer.setScale(0);
+        this.scene.tweens.add({
+            targets: signContainer,
+            scale: 1,
+            duration: 800,
+            ease: 'Back.out'
+        });
+
+        return signContainer;
+    }
 }

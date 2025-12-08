@@ -48,6 +48,6 @@ export default class BootScene extends Phaser.Scene {
         });
 
         // Ir a la escena del juego
-        this.scene.start('GameScene');
+        this.scene.start('EndScene');
     }
 }
